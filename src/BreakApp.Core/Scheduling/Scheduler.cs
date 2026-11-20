@@ -175,6 +175,12 @@ public sealed class Scheduler
 
     private static TimeSpan Max(TimeSpan a, TimeSpan b) => a > b ? a : b;
 
+    public bool CanPostpone(Guid ruleId)
+    {
+        var r = Find(ruleId);
+        return r is not null && _state.TryGetValue(ruleId, out var st) && r.AllowPostpone && st.PostponeCount < r.MaxPostpones;
+    }
+
     public bool Postpone(Guid ruleId)
     {
         var r = Find(ruleId);

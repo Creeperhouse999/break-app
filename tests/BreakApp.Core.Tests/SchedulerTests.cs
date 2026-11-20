@@ -80,6 +80,21 @@ public class SchedulerTests : SchedulerTestBase
     }
 
     [Fact]
+    public void CanPostpone_FalseAfterMaxOrWhenDisallowed()
+    {
+        var r = Rule("A", 600, 10);
+        r.MaxPostpones = 1;
+        var off = Rule("B", 600, 10);
+        off.AllowPostpone = false;
+        Start(r, off);
+        Assert.True(Sch.CanPostpone(r.Id));
+        Sch.Postpone(r.Id);
+        Assert.False(Sch.CanPostpone(r.Id));
+        Assert.False(Sch.CanPostpone(off.Id));
+        Assert.False(Sch.CanPostpone(Guid.NewGuid()));
+    }
+
+    [Fact]
     public void Postpone_NotAllowed_ReturnsFalse()
     {
         var r = Rule("A", 60, 10);

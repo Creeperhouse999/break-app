@@ -90,6 +90,23 @@ public partial class App : Application
                 id => { Log("demo break notification result: " + id); Dispatcher.BeginInvoke(Shutdown, DispatcherPriority.Background); });
             return true;
         }
+        var demoBreak = Array.IndexOf(args, "--demo-break");
+        if (demoBreak >= 0)
+        {
+            // --demo-break window|fullscreen|locked|total [seconds]
+            var kind = args.ElementAtOrDefault(demoBreak + 1) ?? "fullscreen";
+            var secs = int.TryParse(args.ElementAtOrDefault(demoBreak + 2), out var n) ? n : 8;
+            var rule = Core.Settings.RuleTemplates.Stretch();
+            rule.Duration = TimeSpan.FromSeconds(secs);
+            rule.Style = kind == "window" ? Core.Models.BreakStyle.Window : Core.Models.BreakStyle.Fullscreen;
+            rule.Lock = kind switch { "locked" => Core.Models.LockLevel.LockedWithKeybind, "total" => Core.Models.LockLevel.Total, _ => Core.Models.LockLevel.Skippable };
+            Coordinator.Presenter.Present(rule, [Core.Settings.RuleTemplates.EyeRest()], rule.Messages[0], outcome =>
+            {
+                Log("demo break result: " + outcome);
+                Dispatcher.BeginInvoke(Shutdown, DispatcherPriority.Background);
+            });
+            return true;
+        }
         return false;
     }
 
