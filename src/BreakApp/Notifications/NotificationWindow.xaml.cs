@@ -19,7 +19,8 @@ namespace BreakApp.Notifications;
 public partial class NotificationWindow : Window
 {
     private const double Gap = 12;            // distance from the work-area edge to the card
-    private const double ShadowMargin = 14;   // Root margin (left/right)
+    private const double ShadowMargin = 24;   // Root margin left/right (room for shadow + pulse)
+    private const double MarginTop = 18, MarginBottom = 24;
 
     private readonly DispatcherTimer _timer = new(DispatcherPriority.Render) { Interval = TimeSpan.FromMilliseconds(50) };
     private readonly Corner _corner;
@@ -127,19 +128,35 @@ public partial class NotificationWindow : Window
     {
         Glow.BeginAnimation(OpacityProperty, null);
         Glow.Opacity = 0;
+        Pulse.BeginAnimation(ScaleTransform.ScaleXProperty, null);
+        Pulse.BeginAnimation(ScaleTransform.ScaleYProperty, null);
+        Pulse.ScaleX = Pulse.ScaleY = 1;
         if (flash is null || !flash.Enabled || _reduceMotion) return;
 
-        var color = flash.Color is { Length: > 0 } hex ? SafeColor(hex) : ThemeManager.Palette.A2;
-        Glow.BorderBrush = new SolidColorBrush(color);
-        Glow.Background = new SolidColorBrush(Color.FromArgb(46, color.R, color.G, color.B));
         var half = TimeSpan.FromSeconds(1 / (2 * Math.Max(0.5, flash.SpeedHz)));
-        var anim = new DoubleAnimation(0, 1, half)
+        var repeat = flash.Count <= 0 ? RepeatBehavior.Forever : new RepeatBehavior(flash.Count);
+        DoubleAnimation Wave(double from, double to) => new(from, to, half)
         {
             AutoReverse = true,
-            RepeatBehavior = flash.Count <= 0 ? RepeatBehavior.Forever : new RepeatBehavior(flash.Count),
+            RepeatBehavior = repeat,
             EasingFunction = new SineEase { EasingMode = EasingMode.EaseInOut },
         };
-        Glow.BeginAnimation(OpacityProperty, anim);
+
+        if (flash.Style != FlashStyle.Pulse)
+        {
+            var color = flash.Color is { Length: > 0 } hex ? SafeColor(hex) : ThemeManager.Palette.A2;
+            Glow.BorderBrush = new SolidColorBrush(color);
+            Glow.Background = new SolidColorBrush(Color.FromArgb(46, color.R, color.G, color.B));
+            Glow.BeginAnimation(OpacityProperty, Wave(0, 1));
+        }
+
+        if (flash.Style != FlashStyle.Glow)
+        {
+            // The card grows and shrinks around its centre; the window margin leaves room for up to +10 %.
+            var scale = 1 + Math.Clamp(flash.PulseAmount, 1, 10) / 100;
+            Pulse.BeginAnimation(ScaleTransform.ScaleXProperty, Wave(1, scale));
+            Pulse.BeginAnimation(ScaleTransform.ScaleYProperty, Wave(1, scale));
+        }
     }
 
     private static Color SafeColor(string hex)
@@ -182,7 +199,7 @@ public partial class NotificationWindow : Window
         var wa = SystemParameters.WorkArea;
         var cardW = Width - 2 * ShadowMargin;
         Left = IsLeft ? wa.Left + Gap - ShadowMargin : wa.Right - Gap - cardW - ShadowMargin;
-        Top = IsTop ? wa.Top + Gap - 12 : wa.Bottom - Gap - ActualHeight + 18;
+        Top = IsTop ? wa.Top + Gap - MarginTop : wa.Bottom - Gap - ActualHeight + MarginBottom;
     }
 
     private void AnimateIn()

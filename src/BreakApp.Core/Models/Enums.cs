@@ -11,6 +11,7 @@ public enum Corner { BottomRight, TopRight, BottomLeft, TopLeft }
 public enum CountdownFormat { MinSec, Ring, Bar }
 public enum MonitorMode { All, Primary, Specific }
 public enum MessageOrder { Random, Sequential }
+public enum FlashStyle { Glow, Pulse, GlowAndPulse }
 
 public enum BreakOutcome
 {

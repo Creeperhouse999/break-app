@@ -96,6 +96,26 @@ public sealed class SettingsStoreTests : IDisposable
     }
 
     [Fact]
+    public void Flash_DefaultsToGlowAndPulseUntilClosed()
+    {
+        var f = new FlashSettings();
+        Assert.Equal(FlashStyle.GlowAndPulse, f.Style);
+        Assert.Equal(0, f.Count);
+        Assert.Equal(4, f.PulseAmount);
+    }
+
+    [Fact]
+    public void Normalize_ClampsPulseAmount()
+    {
+        var s = AppSettings.CreateDefault();
+        s.Rules[0].Flash.PulseAmount = 50;
+        s.Rules[1].Flash.PulseAmount = 0;
+        SettingsValidator.Normalize(s);
+        Assert.Equal(10, s.Rules[0].Flash.PulseAmount);
+        Assert.Equal(1, s.Rules[1].Flash.PulseAmount);
+    }
+
+    [Fact]
     public void Normalize_RegeneratesDuplicateIds()
     {
         var s = AppSettings.CreateDefault();

@@ -65,6 +65,7 @@ public static class SettingsValidator
         r.Flash ??= new();
         r.Flash.SpeedHz = Clamp(r.Flash.SpeedHz, 0.5, 10);
         r.Flash.Count = Math.Clamp(r.Flash.Count, 0, 100);
+        r.Flash.PulseAmount = Clamp(r.Flash.PulseAmount, 1, 10);
         r.ActiveWindows ??= [];
         foreach (var w in r.ActiveWindows) { w.Days ??= []; w.Label ??= ""; }
         if (r.Appearance?.Opacity is double o) r.Appearance.Opacity = Clamp(o, 0.3, 1);

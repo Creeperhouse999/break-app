@@ -44,11 +44,15 @@ public sealed class WarningSettings
 public sealed class FlashSettings
 {
     public bool Enabled { get; set; } = true;
+    /// <summary>Glow = coloured outline/tint blinks; Pulse = the card grows and shrinks; or both.</summary>
+    public FlashStyle Style { get; set; } = FlashStyle.GlowAndPulse;
     /// <summary>null = use the accent colour. Otherwise "#RRGGBB".</summary>
     public string? Color { get; set; }
     public double SpeedHz { get; set; } = 2;
     /// <summary>0 = flash until the notification closes.</summary>
-    public int Count { get; set; } = 3;
+    public int Count { get; set; }
+    /// <summary>How much bigger the card gets at the top of a pulse, in percent (1..10).</summary>
+    public double PulseAmount { get; set; } = 4;
 }
 
 public sealed class AppearanceOverride

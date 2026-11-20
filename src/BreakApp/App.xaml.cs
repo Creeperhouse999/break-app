@@ -86,7 +86,7 @@ public partial class App : Application
                 "demo-break", Notifications.NotificationKind.Warning, "Eye rest", "Look at something 6 metres away for 20 seconds.",
                 [new("skip", "Skip"), new("postpone", "Postpone 5 min")], TimeSpan.Zero,
                 Remaining: () => end - DateTime.Now, Total: TimeSpan.FromSeconds(15),
-                Flash: new Core.Models.FlashSettings { Enabled = true, Count = 3, SpeedHz = 2 }),
+                Flash: new Core.Models.FlashSettings { Enabled = true, Style = Core.Models.FlashStyle.Pulse, PulseAmount = 6, SpeedHz = 1.5 }),
                 id => { Log("demo break notification result: " + id); Dispatcher.BeginInvoke(Shutdown, DispatcherPriority.Background); });
             return true;
         }
