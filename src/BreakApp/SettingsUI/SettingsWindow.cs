@@ -97,11 +97,12 @@ public sealed class SettingsWindow : Window
             var item = new StackPanel { Orientation = Orientation.Horizontal, Tag = name };
             item.Children.Add(new TextBlock { Text = icon, FontFamily = (FontFamily)Application.Current.FindResource("IconFont"), FontSize = 15, Width = 22, VerticalAlignment = VerticalAlignment.Center });
             item.Children.Add(new TextBlock { Text = name, FontSize = 13.5, Margin = new Thickness(8, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center });
-            _nav.Items.Add(item);
+            // Wrap in a ListBoxItem: a raw panel inherits the ListBox's (black) text colour through its logical parent.
+            _nav.Items.Add(new ListBoxItem { Content = item, Tag = name });
         }
         _nav.SelectionChanged += (_, _) =>
         {
-            if (_nav.SelectedItem is StackPanel { Tag: string name } && name != _page) Show(name, null);
+            if (_nav.SelectedItem is ListBoxItem { Tag: string name } && name != _page) Show(name, null);
         };
         side.Children.Add(_nav);
         root.Children.Add(sideBg);
@@ -166,7 +167,7 @@ public sealed class SettingsWindow : Window
         _results.Margin = new Thickness(32, 8, 32, 8);
         _results.SelectionChanged += (_, _) =>
         {
-            if (_results.SelectedItem is FrameworkElement { Tag: RowInfo row }) GoTo(row);
+            if (_results.SelectedItem is ListBoxItem { Tag: RowInfo row }) GoTo(row);
         };
         content.Children.Add(_results);
         main.Children.Add(content);
@@ -192,7 +193,7 @@ public sealed class SettingsWindow : Window
         var rule = sub is null ? null : _ctx.Edit.Rules.FirstOrDefault(r => r.Id.ToString() == sub);
         _pageTitle.Text = rule is null ? page : $"Rule · {rule.Name}";
         _advanced.IsChecked = _ctx.Edit.General.AdvancedMode;
-        foreach (StackPanel item in _nav.Items)
+        foreach (ListBoxItem item in _nav.Items)
             if ((string)item.Tag == page && !Equals(_nav.SelectedItem, item)) _nav.SelectedItem = item;
         if (_search.Text.Length > 0) { _search.Text = ""; }
     }
@@ -234,9 +235,9 @@ public sealed class SettingsWindow : Window
             sp.Children.Add(new TextBlock { Text = h.Title, FontSize = 13.5, FontWeight = FontWeights.SemiBold });
             sp.Children.Add(new TextBlock { Text = $"{h.Category} › {h.Group}{(string.IsNullOrEmpty(h.Description) ? "" : " · " + h.Description)}", FontSize = 12, TextTrimming = TextTrimming.CharacterEllipsis }
                 .WithRef(TextBlock.ForegroundProperty, "Text3Brush"));
-            _results.Items.Add(sp);
+            _results.Items.Add(new ListBoxItem { Content = sp, Tag = h });
         }
-        if (hits.Count == 0) _results.Items.Add(new TextBlock { Text = "Nothing found.", Margin = new Thickness(10) });
+        if (hits.Count == 0) _results.Items.Add(new ListBoxItem { Content = new TextBlock { Text = "Nothing found." }, IsEnabled = false });
         _results.Visibility = Visibility.Visible;
         _scroll.Visibility = Visibility.Collapsed;
     }

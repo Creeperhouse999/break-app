@@ -284,6 +284,8 @@ public sealed class TimeWindowsEditor : StackPanel
                 Cursor = Cursors.Hand, ToolTip = d.ToString(),
             };
             chip.Template = ChipTemplate();
+            // Style setter (not a local value) so the template's "checked = white" trigger still wins.
+            chip.Style = ChipStyle;
             chip.Click += (_, _) =>
             {
                 if (chip.IsChecked == true) { if (!w.Days.Contains(d)) w.Days.Add(d); }
@@ -314,6 +316,15 @@ public sealed class TimeWindowsEditor : StackPanel
             box.Text = get().ToString("HH:mm", CultureInfo.InvariantCulture);
         };
         return box;
+    }
+
+    private static readonly Style ChipStyle = CreateChipStyle();
+
+    private static Style CreateChipStyle()
+    {
+        var s = new Style(typeof(ToggleButton));
+        s.Setters.Add(new Setter(Control.ForegroundProperty, new DynamicResourceExtension("Text1Brush")));
+        return s;
     }
 
     private static ControlTemplate ChipTemplate()
