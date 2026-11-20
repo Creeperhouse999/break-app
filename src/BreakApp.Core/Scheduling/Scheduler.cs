@@ -13,6 +13,10 @@ public sealed class Scheduler
     private AppSettings _settings;
     private readonly Dictionary<Guid, RuleState> _state = [];
     private DateTime _lastTick;
+    private bool _wasPaused;
+
+    /// <summary>Tick gaps longer than this are treated as sleep / clock jumps.</summary>
+    private static readonly TimeSpan GapLimit = TimeSpan.FromSeconds(30);
 
     public Scheduler(AppSettings settings, IClock clock)
     {
@@ -65,21 +69,52 @@ public sealed class Scheduler
             return events;
         }
 
-        if (pause.IsPaused) return events;
+        if (pause.IsPaused)
+        {
+            _wasPaused = true;
+            return events;
+        }
+        if (_wasPaused)
+        {
+            _wasPaused = false;
+            if (_settings.Pause.TimersDuringPause == PauseTimerPolicy.Reset)
+                foreach (var r in _settings.Rules) Reset(r, _state[r.Id], now);
+        }
 
-        var idle = activity.IdleFor >= _settings.Idle.Threshold;
+        // A long gap between ticks means the PC slept or the clock jumped: treat it as an idle stretch of that length.
+        var gap = delta > GapLimit ? delta : TimeSpan.Zero;
+        var idleFor = activity.IdleFor > gap ? activity.IdleFor : gap;
+        var idle = idleFor >= _settings.Idle.Threshold || gap > TimeSpan.Zero;
+        var natural = _settings.Idle.NaturalBreaks;
         var active = ActiveRules(now).ToList();
 
-        foreach (var r in active)
+        foreach (var r in active.ToList())
         {
             var st = _state[r.Id];
-            switch (r.TimerMode)
+            if (!idle) st.IdleSatisfied = false;
+
+            if (r.TimerMode == TimerMode.ClockAligned)
             {
-                case TimerMode.ActiveTime when !idle:
-                case TimerMode.ClockTime:
-                    st.Elapsed += delta;
-                    break;
+                if (now < st.NextAligned) continue;
+                if (idle)
+                {
+                    // Boundary passed while away: a long enough absence is the break. Otherwise wait for the user to return.
+                    if (natural && idleFor >= r.Duration) Satisfy(r, st, now, events, active);
+                    continue;
+                }
+                if (now >= st.NextAligned + r.Interval) Satisfy(r, st, now, events, active); // came back too late: drop it
+                continue;
             }
+
+            var naturalBreak = natural && !st.IdleSatisfied &&
+                               (gap >= r.Duration || idleFor >= Max(_settings.Idle.Threshold, r.Duration));
+            if (naturalBreak)
+            {
+                Satisfy(r, st, now, events, active);
+                continue;
+            }
+
+            if (r.TimerMode == TimerMode.ClockTime || !idle) st.Elapsed += delta;
         }
 
         foreach (var r in active)
@@ -94,7 +129,9 @@ public sealed class Scheduler
             }
         }
 
-        var due = active.Where(r => TimeUntil(r, _state[r.Id], now) <= TimeSpan.Zero).ToList();
+        // Clock-aligned rules wait for the user to come back before firing.
+        var due = active.Where(r => TimeUntil(r, _state[r.Id], now) <= TimeSpan.Zero
+                                    && !(idle && r.TimerMode == TimerMode.ClockAligned)).ToList();
         foreach (var r in due.Where(r => _state[r.Id].SkipNextFlag).ToList())
         {
             Reset(r, _state[r.Id], now);
@@ -102,15 +139,41 @@ public sealed class Scheduler
             due.Remove(r);
         }
 
-        foreach (var r in due)
+        if (due.Count == 0) return events;
+
+        // Rules due within the collision window join this break instead of interrupting again right after it.
+        var group = due.Concat(active.Where(r => !due.Contains(r) && !_state[r.Id].SkipNextFlag
+                                                 && TimeUntil(r, _state[r.Id], now) <= _settings.CollisionWindow)).ToList();
+
+        if (_settings.Collision == CollisionPolicy.Sequential)
         {
-            var st = _state[r.Id];
-            st.Phase = RulePhase.Pending;
-            st.MergedIds = [];
-            events.Add(new BreakDueEvent(r, []));
+            foreach (var r in group.OrderBy(r => r.Duration))
+            {
+                var st = _state[r.Id];
+                st.Phase = RulePhase.Pending;
+                st.MergedIds = [];
+                events.Add(new BreakDueEvent(r, []));
+            }
+            return events;
         }
+
+        var primary = group.OrderByDescending(r => r.Duration).ThenByDescending(r => (int)r.Lock).ThenByDescending(r => (int)r.Style).First();
+        var merged = group.Where(r => r != primary).ToList();
+        foreach (var r in group) _state[r.Id].Phase = RulePhase.Pending;
+        _state[primary.Id].MergedIds = merged.Select(r => r.Id).ToList();
+        events.Add(new BreakDueEvent(primary, merged));
         return events;
     }
+
+    private void Satisfy(BreakRule r, RuleState st, DateTime now, List<SchedulerEvent> events, List<BreakRule> active)
+    {
+        Reset(r, st, now);
+        st.IdleSatisfied = true;
+        events.Add(new RuleSatisfiedEvent(r, BreakOutcome.SatisfiedByIdle));
+        active.Remove(r);
+    }
+
+    private static TimeSpan Max(TimeSpan a, TimeSpan b) => a > b ? a : b;
 
     public bool Postpone(Guid ruleId)
     {
@@ -169,6 +232,10 @@ public sealed class Scheduler
             }
             else Reset(mr, ms, now);
         }
+
+        if (_settings.Collision == CollisionPolicy.ResetAll && outcome != BreakOutcome.Postponed)
+            foreach (var other in _settings.Rules)
+                if (_state.TryGetValue(other.Id, out var os) && os.Phase == RulePhase.Counting) Reset(other, os, now);
     }
 
     public (BreakRule Rule, TimeSpan In)? NextBreak()
