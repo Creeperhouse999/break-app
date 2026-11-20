@@ -13,6 +13,7 @@ public sealed class AppSettings
     public AppearanceSettings Appearance { get; set; } = new();
     public SoundSettings Sound { get; set; } = new();
     public GeneralSettings General { get; set; } = new();
+    public TextSettings Texts { get; set; } = new();
 
     public static AppSettings CreateDefault() => new()
     {
@@ -64,6 +65,8 @@ public sealed class PauseSettings
     public bool PauseDuringFullscreen { get; set; }
     public bool RespectDoNotDisturb { get; set; }
     public PauseTimerPolicy TimersDuringPause { get; set; } = PauseTimerPolicy.Freeze;
+    /// <summary>Process names: breaks pause while one of these apps is the active (foreground) window.</summary>
+    public List<string> ForegroundExceptions { get; set; } = [];
 }
 
 public sealed class LockSettings
@@ -90,6 +93,11 @@ public sealed class AppearanceSettings
     public bool ReduceMotion { get; set; }
     public MonitorMode Monitors { get; set; } = MonitorMode.All;
     public List<string> SpecificMonitors { get; set; } = [];
+    /// <summary>Optional "#RRGGBB" colours. null = use the theme.</summary>
+    public string? CustomAccent { get; set; }
+    public string? BreakBackgroundColor { get; set; }
+    public string? BreakTextColor { get; set; }
+    public string? NotificationBackgroundColor { get; set; }
 }
 
 public sealed class SoundSettings
@@ -106,4 +114,5 @@ public sealed class GeneralSettings
     public string PauseHotkey { get; set; } = "Ctrl+Alt+P";
     public string BreakNowHotkey { get; set; } = "Ctrl+Alt+B";
     public bool AdvancedMode { get; set; }
+    public bool Use24HourClock { get; set; } = true;
 }

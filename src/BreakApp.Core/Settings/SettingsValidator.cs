@@ -46,7 +46,24 @@ public static class SettingsValidator
         s.Sound.Volume = Clamp(s.Sound.Volume, 0, 1);
         s.General.PauseHotkey ??= "";
         s.General.BreakNowHotkey ??= "";
+        s.Pause.ForegroundExceptions ??= [];
+        s.Appearance.CustomAccent = ColorHex.Normalize(s.Appearance.CustomAccent);
+        s.Appearance.BreakBackgroundColor = ColorHex.Normalize(s.Appearance.BreakBackgroundColor);
+        s.Appearance.BreakTextColor = ColorHex.Normalize(s.Appearance.BreakTextColor);
+        s.Appearance.NotificationBackgroundColor = ColorHex.Normalize(s.Appearance.NotificationBackgroundColor);
+        NormalizeTexts(s.Texts ??= new());
         return s;
+    }
+
+    private static void NormalizeTexts(TextSettings t)
+    {
+        var defaults = new TextSettings();
+        foreach (var p in typeof(TextSettings).GetProperties().Where(p => p.PropertyType == typeof(string) && p.CanWrite))
+        {
+            var v = (string?)p.GetValue(t);
+            if (v is null || (string.IsNullOrWhiteSpace(v) && !TextSettings.MayBeBlank.Contains(p.Name)))
+                p.SetValue(t, p.GetValue(defaults));
+        }
     }
 
     public static void NormalizeRule(BreakRule r)
@@ -66,6 +83,7 @@ public static class SettingsValidator
         r.Flash.SpeedHz = Clamp(r.Flash.SpeedHz, 0.5, 10);
         r.Flash.Count = Math.Clamp(r.Flash.Count, 0, 100);
         r.Flash.PulseAmount = Clamp(r.Flash.PulseAmount, 1, 10);
+        r.Flash.Color = ColorHex.Normalize(r.Flash.Color);
         r.ActiveWindows ??= [];
         foreach (var w in r.ActiveWindows) { w.Days ??= []; w.Label ??= ""; }
         if (r.Appearance?.Opacity is double o) r.Appearance.Opacity = Clamp(o, 0.3, 1);
