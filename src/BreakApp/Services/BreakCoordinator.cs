@@ -136,7 +136,8 @@ public sealed class BreakCoordinator : IDisposable
         Notifications.Close(WarningId(d.Rule));
         try
         {
-            Presenter.Present(d.Rule, d.Merged, NextMessage(d.Rule), outcome => Finished(d, outcome));
+            // Merged breaks keep the longest duration and the strictest lock/skip/postpone of the group.
+            Presenter.Present(MergedBreak.Effective(d.Rule, d.Merged), d.Merged, NextMessage(d.Rule), outcome => Finished(d, outcome));
         }
         catch (Exception e)
         {
