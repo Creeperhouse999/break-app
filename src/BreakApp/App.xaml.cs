@@ -67,7 +67,31 @@ public partial class App : Application
     }
 
     /// <summary>Command-line demos used for manual verification.</summary>
-    private bool HandleDemoArgs(string[] args) => false;
+    private bool HandleDemoArgs(string[] args)
+    {
+        if (args.Contains("--demo-notification"))
+        {
+            var r = Coordinator.Settings.Rules.FirstOrDefault() ?? Core.Settings.RuleTemplates.Stretch();
+            Coordinator.Notifications.Show(new Notifications.NotificationRequest(
+                "demo", Notifications.NotificationKind.Info, "Stretch in 30 s", "5 min break · fullscreen",
+                [new("now", "Start now", true), new("postpone", "Postpone 5 min"), new("skip", "Skip")],
+                TimeSpan.FromSeconds(8), Flash: new Core.Models.FlashSettings { Enabled = true, Count = 0, SpeedHz = 1.5 }),
+                id => { Log("demo notification result: " + id); Dispatcher.BeginInvoke(Shutdown, DispatcherPriority.Background); });
+            return true;
+        }
+        if (args.Contains("--demo-break-notification"))
+        {
+            var end = DateTime.Now.AddSeconds(15);
+            Coordinator.Notifications.Show(new Notifications.NotificationRequest(
+                "demo-break", Notifications.NotificationKind.Warning, "Eye rest", "Look at something 6 metres away for 20 seconds.",
+                [new("skip", "Skip"), new("postpone", "Postpone 5 min")], TimeSpan.Zero,
+                Remaining: () => end - DateTime.Now, Total: TimeSpan.FromSeconds(15),
+                Flash: new Core.Models.FlashSettings { Enabled = true, Count = 3, SpeedHz = 2 }),
+                id => { Log("demo break notification result: " + id); Dispatcher.BeginInvoke(Shutdown, DispatcherPriority.Background); });
+            return true;
+        }
+        return false;
+    }
 
     private void OnSettingsApplied(Core.Models.AppSettings s)
     {

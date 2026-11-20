@@ -58,7 +58,7 @@ public sealed class BreakCoordinator : IDisposable
         Guard = new CommitmentGuard(clock);
         Signals = new SignalHub();
         Sound = new SoundService { Settings = () => Settings.Sound };
-        Notifications = new NotificationManager(Sound, () => Settings.Appearance, timeScale);
+        Notifications = new NotificationManager(() => Settings.Appearance);
         Presenter = new BreakPresenter(this);
         _timer = new DispatcherTimer(DispatcherPriority.Background) { Interval = TimeSpan.FromSeconds(1) };
         _timer.Tick += (_, _) => SafeTick();
