@@ -56,6 +56,21 @@ public partial class App : Application
 
     private void StartApp(string[] args)
     {
+        var selfTest = Array.IndexOf(args, "--self-test");
+        if (selfTest >= 0)
+        {
+            // End-to-end checks in a temp folder; never touches the real settings, tray, hotkeys or autostart.
+            var report = args.ElementAtOrDefault(selfTest + 1) ?? Path.Combine(Path.GetTempPath(), "breakapp-selftest.txt");
+            Dispatcher.BeginInvoke(async () =>
+            {
+                var failed = 99;
+                try { failed = await SelfTest.Run(report); }
+                catch (Exception ex) { File.WriteAllText(report, "SELF-TEST CRASHED: " + ex); }
+                Shutdown(failed);
+            });
+            return;
+        }
+
         var settings = SettingsStore.Load(SettingsStore.DefaultPath);
         if (!File.Exists(SettingsStore.DefaultPath))
         {
@@ -248,8 +263,11 @@ public partial class App : Application
         base.OnExit(e);
     }
 
+    public static int CrashCount;
+
     private static void Crash(Exception? ex)
     {
+        Interlocked.Increment(ref CrashCount);
         InputLock.ReleaseAll();
         Log("CRASH: " + ex);
         try

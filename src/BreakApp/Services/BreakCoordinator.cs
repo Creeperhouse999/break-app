@@ -50,6 +50,11 @@ public sealed class BreakCoordinator : IDisposable
     /// <summary>Raised after settings were applied (hotkeys, autostart, theme).</summary>
     public event Action<AppSettings>? SettingsApplied;
 
+    /// <summary>Self-test hooks: replace OS signals with scripted ones.</summary>
+    internal Func<IdleSettings, ActivitySnapshot>? ActivityOverride { get; set; }
+    internal Func<PauseSettings, DateTime, Core.Pausing.PauseSignals>? PauseOverride { get; set; }
+    internal void TickNow() => Tick();
+
     public BreakCoordinator(AppSettings settings, string settingsPath, IClock clock, double timeScale, string historyPath)
     {
         Settings = settings;
@@ -78,10 +83,10 @@ public sealed class BreakCoordinator : IDisposable
     private void Tick()
     {
         var now = Clock.Now;
-        var activity = Signals.Activity(Settings.Idle);
+        var activity = ActivityOverride?.Invoke(Settings.Idle) ?? Signals.Activity(Settings.Idle);
         if (SignalHub.ForegroundProcessName() is { } fg && fg != OwnProcess) LastForegroundApp = fg;
         LastActivity = new ActivitySnapshot(TimeSpan.FromTicks((long)(activity.IdleFor.Ticks * TimeScale)));
-        var signals = Signals.Pause(Settings.Pause, now);
+        var signals = PauseOverride?.Invoke(Settings.Pause, now) ?? Signals.Pause(Settings.Pause, now);
         // Our own fullscreen break looks like a "fullscreen app" to Windows (and can switch on Do Not Disturb):
         // never let it pause/end itself.
         if (Presenter.IsRunning) signals = signals with { DoNotDisturb = false, FullscreenApp = false };

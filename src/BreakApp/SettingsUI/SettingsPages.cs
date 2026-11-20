@@ -84,6 +84,7 @@ public static class SettingsPages
         }
         add.ContextMenu = menu;
         add.Click += (_, _) => { menu.PlacementTarget = add; menu.IsOpen = true; };
+        b.AddLoose(PageBuilder.Buttons(add)); // right under the rule list
 
         b.Group("When rules overlap");
         b.Choice("Collision", "Overlapping breaks", "What happens when two rules are due at about the same time.",
@@ -93,7 +94,6 @@ public static class SettingsPages
         b.Duration("CollisionWindow", "Overlap window", "Rules due within this time of each other are treated as one.",
             () => ctx.Edit.CollisionWindow, v => ctx.Edit.CollisionWindow = v, TimeSpan.Zero, TimeSpan.FromMinutes(10), advanced: true,
             tip: "Example: 1 min — if the eye rest is due 40 s after the stretch starts, it is merged into the stretch.");
-        b.AddLoose(PageBuilder.Buttons(add));
         return b.Panel;
     }
 
@@ -428,7 +428,6 @@ public static class SettingsPages
     // ------------------------------------------------------------------ Texts
     private static readonly (string Prop, string Title, string Desc)[] TextRows =
     [
-        (nameof(TextSettings.BrandName), "App name", "Small label on notifications."),
         (nameof(TextSettings.WarningTitle), "Warning title", "{rule} = rule name, {time} = time left."),
         (nameof(TextSettings.WarningBody), "Warning text", "{duration} = break length, {style} = style name."),
         (nameof(TextSettings.StartNowButton), "\"Start now\" button", ""),

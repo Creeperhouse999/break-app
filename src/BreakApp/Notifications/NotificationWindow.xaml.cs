@@ -44,7 +44,6 @@ public partial class NotificationWindow : Window
         _corner = appearance.NotificationCorner;
         _reduceMotion = appearance.ReduceMotion;
         FontSize = 13 * appearance.FontScale;
-        BrandText.Text = App.Coordinator?.Settings.Texts.BrandName ?? "Break App";
         if (IsLeft) Slide.X = -46;
 
         SourceInitialized += (_, _) =>

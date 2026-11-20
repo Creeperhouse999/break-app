@@ -82,7 +82,12 @@ public sealed class PageBuilder
     }
 
     /// <summary>Adds an element outside of any card.</summary>
-    public void AddLoose(UIElement e) => Panel.Children.Add(e);
+    public void AddLoose(UIElement e)
+    {
+        // Breathing room from the card above (and the next section heading below).
+        if (e is FrameworkElement fe && fe.Margin == default) fe.Margin = new Thickness(0, Panel.Children.Count == 0 ? 0 : 14, 0, 4);
+        Panel.Children.Add(e);
+    }
 
     private void EnsureGroup()
     {

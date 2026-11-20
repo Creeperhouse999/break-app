@@ -13,6 +13,7 @@ namespace BreakApp.Services;
 public sealed class InputLock : IDisposable
 {
     private static readonly List<InputLock> Active = [];
+    internal static int ActiveCount { get { lock (Active) return Active.Count; } }
 
     private readonly Hotkey? _escape;
     private readonly Action _onEscape;

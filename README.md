@@ -112,6 +112,7 @@ scripts\build.ps1 -SelfContained  # one bigger exe that runs without the runtime
 | `--demo-notification` / `--demo-break-notification` | Show a sample card, then exit. |
 | `--demo-break window\|fullscreen\|locked\|total [seconds]` | Show a sample break. ⚠️ `locked`/`total` really lock input. |
 | `--check-settings` | Headless check that every setting has a control in the UI. |
+| `--self-test <report>` | 15 end-to-end scenarios (breaks, skip/postpone, pauses, settings, setup guide, commitment) with a scripted clock. Run it via `scriptsun-ui-tests.ps1`. |
 | `--render-screenshots <dir>` | Render the README screenshots off-screen (default settings, nothing shown). |
 
 Tray → **Diagnostics…** (Advanced mode) shows live idle time, gamepad / video / meeting / Do Not Disturb detection and every rule's timer.
@@ -120,6 +121,7 @@ Tray → **Diagnostics…** (Advanced mode) shows live idle time, gamepad / vide
 
 ```
 src/BreakApp.Core   all decisions: settings, scheduler, pausing, commitment, history (no UI, 147 unit tests)
+src/BreakApp        WPF shell (+ SelfTest.cs: 15 end-to-end scenarios)
 src/BreakApp        WPF shell: tray, notifications, break windows, input lock, OS signals, settings, setup guide
 tests/              xUnit tests for Core
 docs/               design spec, implementation plan, screenshots

@@ -93,6 +93,8 @@ public sealed class SetupGuideWindow : Window
     }
 
     public void GoToStep(int step) => ShowStep(step);
+    internal void TestFinish() => Finish(save: true);
+    internal SettingsContext TestContext => _ctx;
 
     private void ShowStep(int step)
     {

@@ -27,7 +27,7 @@ public class CustomizationTests
         var t = new TextSettings();
         Assert.Equal("{rule} in {time}", t.WarningTitle);
         Assert.Equal("Skip break", t.SkipBreakButton);
-        Assert.Equal("Break App", t.BrandName);
+        Assert.Null(typeof(TextSettings).GetProperty("BrandName")); // the app name is fixed, never editable
     }
 
     [Fact]
@@ -49,9 +49,9 @@ public class CustomizationTests
         var dir = Path.Combine(Path.GetTempPath(), "BreakAppTexts_" + Guid.NewGuid().ToString("N"));
         var path = Path.Combine(dir, "s.json");
         var s = AppSettings.CreateDefault();
-        s.Texts.BrandName = "Przerwa";
+        s.Texts.WarningTitle = "Przerwa za {time}";
         SettingsStore.Save(s, path);
-        Assert.Equal("Przerwa", SettingsStore.Load(path).Texts.BrandName);
+        Assert.Equal("Przerwa za {time}", SettingsStore.Load(path).Texts.WarningTitle);
         Directory.Delete(dir, true);
     }
 

@@ -177,6 +177,13 @@ public sealed class SettingsWindow : Window
         return root;
     }
 
+    internal SettingsContext TestContext => _ctx;
+    internal StackPanel? TestPanel => _scroll.Content as StackPanel;
+    internal void TestNavigate(string page, string? sub = null) => Show(page, sub);
+    internal void TestSearch(string text) => _search.Text = text;
+    internal int TestResultCount => _results.Items.Count;
+    internal void TestSave() => Save();
+
     /// <summary>Open a rule's editor directly.</summary>
     public void ShowRule(Guid id) => Show("Rules", id.ToString());
 

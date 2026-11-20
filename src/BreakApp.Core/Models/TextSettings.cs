@@ -6,7 +6,6 @@ namespace BreakApp.Core.Models;
 /// </summary>
 public sealed class TextSettings
 {
-    public string BrandName { get; set; } = "Break App";
     /// <summary>Warning notification title. {rule}, {time} (time left).</summary>
     public string WarningTitle { get; set; } = "{rule} in {time}";
     /// <summary>Warning notification body. {duration}, {style}.</summary>
