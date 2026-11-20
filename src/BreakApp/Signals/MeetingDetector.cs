@@ -16,21 +16,21 @@ public sealed class MeetingDetector
     private const string ConsentStore = @"Software\Microsoft\Windows\CurrentVersion\CapabilityAccessManager\ConsentStore";
     private static readonly string OwnExe = Path.GetFileNameWithoutExtension(Environment.ProcessPath ?? "BreakApp");
 
-    private DateTime _next = DateTime.MinValue;
-    private (bool Active, string? Source) _cached;
+    private DateTime _next = DateTime.MinValue, _nextTitles = DateTime.MinValue;
+    private (bool Active, string? Source) _cached, _titles;
 
     public (bool Active, string? Source) Check(PauseSettings s)
     {
         var now = DateTime.UtcNow;
         if (now < _next) return _cached;
         _next = now.AddSeconds(2);
-        _cached = Detect(s);
+        _cached = Detect(s, now);
         return _cached;
     }
 
     public string Describe() => $"Meeting: {_cached.Active}{(_cached.Source is { } src ? $" ({src})" : "")}";
 
-    private static (bool, string?) Detect(PauseSettings s)
+    private (bool, string?) Detect(PauseSettings s, DateTime now)
     {
         try
         {
@@ -52,6 +52,9 @@ public sealed class MeetingDetector
             }
 
             var patterns = s.MeetingTitlePatterns.Where(t => !string.IsNullOrWhiteSpace(t)).ToList();
+            if (patterns.Count > 0 && now < _nextTitles) return _titles; // window titles: every 5 s
+            _nextTitles = now.AddSeconds(5);
+            _titles = (false, null);
             if (patterns.Count > 0)
             {
                 var ownPid = (uint)Environment.ProcessId;
@@ -59,7 +62,7 @@ public sealed class MeetingDetector
                 {
                     if (pid == ownPid) continue;
                     var hit = patterns.FirstOrDefault(pt => title.Contains(pt, StringComparison.OrdinalIgnoreCase));
-                    if (hit is not null) return (true, hit.Trim(' ', '-'));
+                    if (hit is not null) return _titles = (true, hit.Trim(' ', '-'));
                 }
             }
         }

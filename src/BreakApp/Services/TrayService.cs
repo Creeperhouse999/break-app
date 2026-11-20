@@ -45,7 +45,8 @@ public sealed class TrayService : IDisposable
         }
         else tip = "No upcoming breaks";
 
-        _icon.Text = Truncate("Break App · " + tip, 127);
+        var text = Truncate("Break App · " + tip, 127);
+        if (_icon.Text != text) _icon.Text = text;
         var key = $"{paused}|{_c.RunningRule is not null}|{Math.Round(fraction * 24)}|{ThemeManager.Palette.A1}";
         if (key != _iconKey)
         {

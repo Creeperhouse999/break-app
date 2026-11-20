@@ -64,6 +64,16 @@ public partial class App : Application
         OnSettingsApplied(settings);
         Coordinator.Start();
         Log($"started (fast={fast})");
+
+        // Startup allocates a lot once (XAML, settings, theme); hand it back so the idle tray app stays small.
+        var trim = new DispatcherTimer { Interval = TimeSpan.FromSeconds(8) };
+        trim.Tick += (_, _) =>
+        {
+            trim.Stop();
+            System.Runtime.GCSettings.LargeObjectHeapCompactionMode = System.Runtime.GCLargeObjectHeapCompactionMode.CompactOnce;
+            GC.Collect(2, GCCollectionMode.Forced, blocking: true, compacting: true);
+        };
+        trim.Start();
     }
 
     /// <summary>Command-line demos used for manual verification.</summary>
@@ -126,8 +136,8 @@ public partial class App : Application
 
     private void OnSettingsApplied(Core.Models.AppSettings s)
     {
-        // Only a real, installed-or-portable run touches autostart (dev builds under bin\ too; that's fine: it points at this exe).
-        Autostart.Set(s.General.StartWithWindows);
+        // BREAKAPP_NO_AUTOSTART=1 lets test runs leave the Windows startup list alone.
+        if (Environment.GetEnvironmentVariable("BREAKAPP_NO_AUTOSTART") != "1") Autostart.Set(s.General.StartWithWindows);
 
         var state = s.General.PauseHotkey + "|" + s.General.BreakNowHotkey;
         if (state == _hotkeyState) return;

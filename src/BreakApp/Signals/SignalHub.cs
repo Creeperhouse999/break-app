@@ -28,21 +28,23 @@ public sealed class SignalHub : IDisposable
         return new PauseSignals(meeting, source, dnd, fullscreen, Manual.Until, Manual.Indefinite, foreground);
     }
 
-    /// <summary>Process name of the active window (e.g. "obs64"), or null.</summary>
+    private static uint _lastPid;
+    private static string? _lastName;
+
+    /// <summary>
+    /// Process name of the active window (e.g. "obs64"), or null. Cheap: one OpenProcess + image-name query, cached per pid
+    /// (Process.GetProcessById would snapshot every process on the machine each call).
+    /// </summary>
     public static string? ForegroundProcessName()
     {
-        try
-        {
-            var hwnd = BreakApp.Services.Native.GetForegroundWindow();
-            if (hwnd == IntPtr.Zero) return null;
-            BreakApp.Services.Native.GetWindowThreadProcessId(hwnd, out var pid);
-            using var p = System.Diagnostics.Process.GetProcessById((int)pid);
-            return p.ProcessName;
-        }
-        catch (Exception e) when (e is ArgumentException or InvalidOperationException or System.ComponentModel.Win32Exception)
-        {
-            return null;
-        }
+        var hwnd = BreakApp.Services.Native.GetForegroundWindow();
+        if (hwnd == IntPtr.Zero) return null;
+        BreakApp.Services.Native.GetWindowThreadProcessId(hwnd, out var pid);
+        if (pid == 0) return null;
+        if (pid == _lastPid) return _lastName;
+        _lastPid = pid;
+        _lastName = BreakApp.Services.Native.ProcessName(pid);
+        return _lastName;
     }
 
     public void Dispose() => _activity.Dispose();
