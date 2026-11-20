@@ -9,7 +9,7 @@ namespace BreakApp.Core.Settings;
 /// </summary>
 public static class SettingsPaths
 {
-    private static readonly HashSet<string> Internal = ["Version", "Rules[].Id", "Rules[].Order"];
+    private static readonly HashSet<string> Internal = ["Version", "Rules[].Id", "Rules[].Order", "General.SetupDone"];
 
     /// <summary>Types edited as one unit by a dedicated editor (not walked into).</summary>
     private static readonly HashSet<Type> Atomic = [typeof(TimeWindow)];

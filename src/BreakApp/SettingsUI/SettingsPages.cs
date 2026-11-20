@@ -315,8 +315,8 @@ public static class SettingsPages
         var s = ctx.Edit.Pause;
         var b = new PageBuilder(ctx, "Pausing & Meetings");
         b.Group("Meetings & calls");
-        b.Toggle("Pause.DetectMicCamera", "Pause while the mic or camera is in use", "Catches Google Meet in the browser, Zoom, Teams, Discord calls…",
-            () => s.DetectMicCamera, v => s.DetectMicCamera = v, tip: "Uses Windows' privacy indicator data — the same thing that shows the mic icon in the taskbar.");
+        b.Toggle("Pause.DetectMicCamera", "Pause while the mic or camera is in use", "For Google Meet, Zoom, Teams calls. Off by default: game voice chat (Discord, in-game) uses the mic too.",
+            () => s.DetectMicCamera, v => s.DetectMicCamera = v, tip: "Uses Windows' privacy indicator data (the mic icon in the taskbar). If you voice-chat while gaming, leave this off or breaks would pause the whole time you talk.");
         b.Lines("Pause.MeetingTitlePatterns", "Meeting window titles", "Pause while a window title contains any of these (one per line).",
             () => s.MeetingTitlePatterns, v => s.MeetingTitlePatterns = v, advanced: true, minLines: 2);
         b.Lines("Pause.MeetingProcesses", "Pause while these apps are running", "Process names, one per line (e.g. obs64). Breaks pause as long as the app is open.",

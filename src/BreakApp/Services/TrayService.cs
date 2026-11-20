@@ -18,6 +18,7 @@ public sealed class TrayService : IDisposable
     public event Action<string?>? OpenSettingsRequested;
     public event Action? QuitRequested;
     public event Action? DiagnosticsRequested;
+    public event Action? SetupGuideRequested;
 
     public TrayService(BreakCoordinator c)
     {
@@ -161,6 +162,7 @@ public sealed class TrayService : IDisposable
         menu.Items.Add(new ToolStripSeparator());
         menu.Items.Add("Settings…", null, (_, _) => OpenSettingsRequested?.Invoke(null));
         menu.Items.Add("Stats…", null, (_, _) => OpenSettingsRequested?.Invoke("Stats"));
+        menu.Items.Add("Setup guide…", null, (_, _) => SetupGuideRequested?.Invoke());
         if (c.Settings.General.AdvancedMode) menu.Items.Add("Diagnostics…", null, (_, _) => DiagnosticsRequested?.Invoke());
         menu.Items.Add(new ToolStripSeparator());
         var quitBlock = c.BlockReason(GuardedAction.Quit);

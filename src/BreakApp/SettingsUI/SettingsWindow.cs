@@ -174,6 +174,9 @@ public sealed class SettingsWindow : Window
         return root;
     }
 
+    /// <summary>Open a rule's editor directly.</summary>
+    public void ShowRule(Guid id) => Show("Rules", id.ToString());
+
     // ------------------------------------------------------------------ navigation & search
 
     private void Show(string page, string? sub)

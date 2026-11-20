@@ -114,4 +114,14 @@ public class CustomizationTests
 
     [Fact]
     public void General_Defaults24Hour() => Assert.True(new GeneralSettings().Use24HourClock);
+
+    [Fact]
+    public void MicCameraDetection_OffByDefault() => Assert.False(new PauseSettings().DetectMicCamera);
+
+    [Fact]
+    public void SetupDone_FalseByDefault_AndNotAUserSetting()
+    {
+        Assert.False(new GeneralSettings().SetupDone);
+        Assert.DoesNotContain("General.SetupDone", SettingsPaths.AllLeaves());
+    }
 }

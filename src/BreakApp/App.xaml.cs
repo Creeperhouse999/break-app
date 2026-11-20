@@ -61,9 +61,11 @@ public partial class App : Application
         _tray.OpenSettingsRequested += ShowSettings;
         _tray.QuitRequested += Quit;
         _tray.DiagnosticsRequested += ShowDiagnostics;
+        _tray.SetupGuideRequested += ShowSetupGuide;
         OnSettingsApplied(settings);
         Coordinator.Start();
         Log($"started (fast={fast})");
+        if (!settings.General.SetupDone) ShowSetupGuide();
 
         // Startup allocates a lot once (XAML, settings, theme); hand it back so the idle tray app stays small.
         var trim = new DispatcherTimer { Interval = TimeSpan.FromSeconds(8) };
@@ -79,6 +81,13 @@ public partial class App : Application
     /// <summary>Command-line demos used for manual verification.</summary>
     private bool HandleDemoArgs(string[] args)
     {
+        var shots = Array.IndexOf(args, "--render-screenshots");
+        if (shots >= 0)
+        {
+            Screenshots.Render(args.ElementAtOrDefault(shots + 1) ?? Path.Combine(Environment.CurrentDirectory, "docs", "screenshots"));
+            Shutdown();
+            return true;
+        }
         if (args.Contains("--check-settings"))
         {
             // Headless: builds every settings page (no window) and lists settings that have no UI control.
@@ -167,6 +176,20 @@ public partial class App : Application
     private void BreakNow()
     {
         if (Coordinator.Settings.Rules.FirstOrDefault(r => r.Enabled) is { } r) Coordinator.TakeNow(r.Id);
+    }
+
+    private SettingsUI.SetupGuideWindow? _setupGuide;
+
+    public void ShowSetupGuide()
+    {
+        if (_setupGuide is null)
+        {
+            _setupGuide = new SettingsUI.SetupGuideWindow(Coordinator);
+            _setupGuide.OpenSettingsRequested += () => ShowSettings(null);
+            _setupGuide.Closed += (_, _) => _setupGuide = null;
+            _setupGuide.Show();
+        }
+        _setupGuide.Activate();
     }
 
     public void ShowSettings(string? page)

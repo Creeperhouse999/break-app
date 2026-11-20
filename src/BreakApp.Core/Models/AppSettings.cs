@@ -58,7 +58,8 @@ public sealed class IdleSettings
 
 public sealed class PauseSettings
 {
-    public bool DetectMicCamera { get; set; } = true;
+    /// <summary>Off by default: game voice chat (Discord etc.) also uses the mic and would pause breaks all the time.</summary>
+    public bool DetectMicCamera { get; set; }
     public List<string> MeetingProcesses { get; set; } = [];
     public List<string> MeetingTitlePatterns { get; set; } = ["Meet - ", "Zoom Meeting"];
     public List<TimeWindow> QuietTimes { get; set; } = [];
@@ -115,4 +116,6 @@ public sealed class GeneralSettings
     public string BreakNowHotkey { get; set; } = "Ctrl+Alt+B";
     public bool AdvancedMode { get; set; }
     public bool Use24HourClock { get; set; } = true;
+    /// <summary>Set when the first-run setup guide was finished or skipped (internal, not shown in settings).</summary>
+    public bool SetupDone { get; set; }
 }
