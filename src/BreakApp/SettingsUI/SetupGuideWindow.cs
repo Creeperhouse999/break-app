@@ -94,7 +94,9 @@ public sealed class SetupGuideWindow : Window
 
     public void GoToStep(int step) => ShowStep(step);
     internal void TestFinish() => Finish(save: true);
+    internal void TestCloseWithoutSaving() { _finished = true; Close(); }
     internal SettingsContext TestContext => _ctx;
+    internal FrameworkElement? TestBody => _body.Content as FrameworkElement;
 
     private void ShowStep(int step)
     {
@@ -216,17 +218,17 @@ public sealed class SetupGuideWindow : Window
             () => s.DetectMicCamera, v => s.DetectMicCamera = v);
         b.Add(new Border
         {
-            CornerRadius = new CornerRadius(8), Padding = new Thickness(12, 9, 12, 9),
+            CornerRadius = new CornerRadius(8), Padding = new Thickness(12, 9, 12, 9), BorderThickness = new Thickness(3, 0, 0, 0),
             Child = new TextBlock
             {
                 TextWrapping = TextWrapping.Wrap, FontSize = 12.5,
                 Text = "⚠ Heads-up: voice chat while gaming (Discord, in-game chat) also uses the mic. If you often play with friends, keep this OFF — otherwise breaks would pause the whole time you're talking.",
             }.WithRef(TextBlock.ForegroundProperty, "Text1Brush"),
-        }.WithRef(Border.BackgroundProperty, "WarningBackgroundBrush"));
+        }.WithRef(Border.BackgroundProperty, "WarningBackgroundBrush").WithRef(Border.BorderBrushProperty, "WarningBrush"));
 
         b.Group("Apps that should never be interrupted");
-        b.Lines("Pause.ForegroundExceptions", "Pause while these apps are in front", "Process names, one per line (e.g. obs64, Photoshop). Optional.",
-            () => s.ForegroundExceptions, v => s.ForegroundExceptions = v, minLines: 2);
+        b.Apps("Pause.ForegroundExceptions", "Pause while these apps are in front", "Pick from your open apps (e.g. OBS, Photoshop). Optional.",
+            () => s.ForegroundExceptions, v => s.ForegroundExceptions = v);
 
         b.Group("Quiet times");
         b.Row("Pause.QuietTimes", "No breaks during…", "Lessons, meetings, gaming nights. Optional.",

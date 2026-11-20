@@ -14,6 +14,9 @@ public sealed class TrayService : IDisposable
     private readonly NotifyIcon _icon;
     private IntPtr _hIcon;
     private string _iconKey = "";
+    private readonly System.Windows.Forms.Timer _menuTimer = new() { Interval = 1000 };
+    private ToolStripMenuItem? _header;
+    private readonly List<(ToolStripMenuItem Item, BreakApp.Core.Models.BreakRule Rule)> _skipItems = [];
 
     public event Action<string?>? OpenSettingsRequested;
     public event Action? QuitRequested;
@@ -25,6 +28,10 @@ public sealed class TrayService : IDisposable
         _c = c;
         _icon = new NotifyIcon { Text = "Break App", Visible = true, ContextMenuStrip = new ContextMenuStrip() };
         _icon.ContextMenuStrip.Opening += (_, _) => BuildMenu();
+        // Keep the times in the open menu ticking.
+        _menuTimer.Tick += (_, _) => UpdateMenuTexts();
+        _icon.ContextMenuStrip.Opened += (_, _) => _menuTimer.Start();
+        _icon.ContextMenuStrip.Closed += (_, _) => _menuTimer.Stop();
         _icon.DoubleClick += (_, _) => OpenSettingsRequested?.Invoke(null);
         _icon.MouseClick += (_, e) => { if (e.Button == MouseButtons.Left) OpenSettingsRequested?.Invoke(null); };
         c.StateChanged += Refresh;
@@ -41,7 +48,7 @@ public sealed class TrayService : IDisposable
         else if (paused) tip = _c.Pause.Reason ?? "Paused";
         else if (_c.Scheduler.NextBreak() is { } next)
         {
-            tip = $"Next: {next.Rule.Name} in {Format.Countdown(next.In)}";
+            tip = HeaderText();
             fraction = next.Rule.Interval.Ticks > 0 ? Math.Clamp(next.In.TotalSeconds / next.Rule.Interval.TotalSeconds, 0, 1) : 1;
         }
         else tip = "No upcoming breaks";
@@ -54,6 +61,24 @@ public sealed class TrayService : IDisposable
             _iconKey = key;
             SetIcon(DrawIcon(paused, _c.RunningRule is not null, fraction));
         }
+    }
+
+    /// <summary>"Next: Eye rest in 12:30", with a note when timers are paused because there's no input.</summary>
+    private string HeaderText()
+    {
+        if (_c.RunningRule is { } running) return $"On a break: {running.Name}";
+        if (_c.Pause.IsPaused) return _c.Pause.Reason ?? "Paused";
+        if (_c.Scheduler.NextBreak() is not { } n) return "No upcoming breaks";
+        var text = $"Next: {n.Rule.Name} in {Format.Countdown(n.In)}";
+        return _c.Scheduler.TimersFrozen && n.Rule.TimerMode == BreakApp.Core.Models.TimerMode.ActiveTime ? text + " (paused: no input)" : text;
+    }
+
+    private string SkipText(BreakApp.Core.Models.BreakRule r) => $"{r.Name} (in {Format.Countdown(_c.Scheduler.TimeUntil(r.Id))})";
+
+    private void UpdateMenuTexts()
+    {
+        if (_header is not null) _header.Text = HeaderText();
+        foreach (var (item, rule) in _skipItems) item.Text = SkipText(rule);
     }
 
     private static string Truncate(string s, int max) => s.Length <= max ? s : s[..(max - 1)] + "…";
@@ -111,17 +136,29 @@ public sealed class TrayService : IDisposable
         return bmp;
     }
 
+    /// <summary>UX tour: open the menu at a point so it can be captured.</summary>
+    internal ContextMenuStrip TestShowMenu(System.Drawing.Point at)
+    {
+        var menu = _icon.ContextMenuStrip!;
+        menu.AutoClose = false; // capture only: stay open without focus
+        BuildMenu();           // an empty strip refuses to open
+        menu.Show(at);
+        return menu;
+    }
+
     private void BuildMenu()
     {
         var menu = _icon.ContextMenuStrip!;
         menu.Items.Clear();
+        menu.Renderer = new ThemedMenuRenderer();
+        menu.ShowImageMargin = false;
+        menu.Padding = new Padding(4);
+        menu.Font = new Font("Segoe UI", 10f);
+        _skipItems.Clear();
         var c = _c;
 
-        var header = c.RunningRule is { } running ? $"On a break: {running.Name}"
-            : c.Pause.IsPaused ? c.Pause.Reason ?? "Paused"
-            : c.Scheduler.NextBreak() is { } n ? $"Next: {n.Rule.Name} in {Format.Countdown(n.In)}"
-            : "No upcoming breaks";
-        menu.Items.Add(new ToolStripMenuItem(header) { Enabled = false });
+        _header = new ToolStripMenuItem(HeaderText()) { Enabled = false };
+        menu.Items.Add(_header);
         menu.Items.Add(new ToolStripSeparator());
 
         var rules = c.Settings.Rules.Where(r => r.Enabled).ToList();
@@ -133,12 +170,13 @@ public sealed class TrayService : IDisposable
         var skip = new ToolStripMenuItem("Skip next");
         foreach (var r in rules)
         {
-            var item = new ToolStripMenuItem($"{r.Name} (in {Format.Countdown(c.Scheduler.TimeUntil(r.Id))})", null, (_, _) =>
+            var item = new ToolStripMenuItem(SkipText(r), null, (_, _) =>
             {
                 if (c.SkipNext(r.Id) is { } why) c.Info("Can't skip", why);
                 else c.Info("Skipped", $"The next '{r.Name}' break will be skipped.", Notifications.NotificationKind.Success);
             }) { Enabled = r.AllowSkip };
             skip.DropDownItems.Add(item);
+            _skipItems.Add((item, r));
         }
         skip.Enabled = rules.Count > 0;
         menu.Items.Add(skip);
@@ -174,5 +212,78 @@ public sealed class TrayService : IDisposable
         _icon.Visible = false;
         _icon.Dispose();
         if (_hIcon != IntPtr.Zero) Native.DestroyIcon(_hIcon);
+    }
+}
+
+/// <summary>Draws the WinForms tray menu in the app's theme (surface colour, light/dark text, accent hover, rounded highlight).</summary>
+internal sealed class ThemedMenuRenderer : ToolStripProfessionalRenderer
+{
+    private static System.Drawing.Color Res(string key, System.Drawing.Color fallback) =>
+        System.Windows.Application.Current?.TryFindResource(key) is System.Windows.Media.SolidColorBrush b
+            ? System.Drawing.Color.FromArgb(255, b.Color.R, b.Color.G, b.Color.B) : fallback;
+
+    private static System.Drawing.Color Blend(System.Drawing.Color over, System.Drawing.Color under, double a) =>
+        System.Drawing.Color.FromArgb((int)(over.R * a + under.R * (1 - a)), (int)(over.G * a + under.G * (1 - a)), (int)(over.B * a + under.B * (1 - a)));
+
+    private readonly System.Drawing.Color _surface = Res("SurfaceBrush", System.Drawing.Color.FromArgb(21, 38, 79));
+    private readonly System.Drawing.Color _text = Res("Text1Brush", System.Drawing.Color.White);
+    private readonly System.Drawing.Color _muted = Res("Text3Brush", System.Drawing.Color.Gray);
+    private readonly System.Drawing.Color _accent = Res("Accent2Brush", System.Drawing.Color.CornflowerBlue);
+    private readonly System.Drawing.Color _border = Res("ButtonBorderBrush", System.Drawing.Color.DimGray);
+
+    public ThemedMenuRenderer() : base(new Table()) => RoundedEdges = false;
+
+    private sealed class Table : ProfessionalColorTable
+    {
+        public Table() => UseSystemColors = false;
+    }
+
+    protected override void OnRenderToolStripBackground(ToolStripRenderEventArgs e)
+    {
+        using var b = new SolidBrush(_surface);
+        e.Graphics.FillRectangle(b, e.AffectedBounds);
+    }
+
+    protected override void OnRenderToolStripBorder(ToolStripRenderEventArgs e)
+    {
+        using var p = new Pen(_border);
+        e.Graphics.DrawRectangle(p, 0, 0, e.AffectedBounds.Width - 1, e.AffectedBounds.Height - 1);
+    }
+
+    protected override void OnRenderImageMargin(ToolStripRenderEventArgs e) { }
+
+    protected override void OnRenderMenuItemBackground(ToolStripItemRenderEventArgs e)
+    {
+        if (!e.Item.Selected || !e.Item.Enabled) return;
+        var r = new Rectangle(4, 1, e.Item.Width - 8, e.Item.Height - 2);
+        using var path = new GraphicsPath();
+        const int d = 10;
+        path.AddArc(r.X, r.Y, d, d, 180, 90);
+        path.AddArc(r.Right - d, r.Y, d, d, 270, 90);
+        path.AddArc(r.Right - d, r.Bottom - d, d, d, 0, 90);
+        path.AddArc(r.X, r.Bottom - d, d, d, 90, 90);
+        path.CloseFigure();
+        e.Graphics.SmoothingMode = SmoothingMode.AntiAlias;
+        using var b = new SolidBrush(Blend(_accent, _surface, 0.22));
+        e.Graphics.FillPath(b, path);
+    }
+
+    protected override void OnRenderItemText(ToolStripItemTextRenderEventArgs e)
+    {
+        e.TextColor = e.Item.Enabled ? _text : _muted;
+        base.OnRenderItemText(e);
+    }
+
+    protected override void OnRenderArrow(ToolStripArrowRenderEventArgs e)
+    {
+        e.ArrowColor = _muted;
+        base.OnRenderArrow(e);
+    }
+
+    protected override void OnRenderSeparator(ToolStripSeparatorRenderEventArgs e)
+    {
+        using var p = new Pen(Blend(_border, _surface, 0.6));
+        var y = e.Item.Height / 2;
+        e.Graphics.DrawLine(p, 8, y, e.Item.Width - 8, y);
     }
 }

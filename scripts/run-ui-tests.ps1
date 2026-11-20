@@ -67,7 +67,7 @@ $env:BREAKAPP_NO_AUTOSTART = '1'
 Write-Host "Running self-test on a hidden desktop..." -ForegroundColor Cyan
 $code = [HiddenDesktop]::Run($Exe, "--self-test `"$report`"", $TimeoutSeconds * 1000)
 if (Test-Path $report) { Get-Content $report; Remove-Item $report }
-else { Write-Host "no report written" -ForegroundColor Red }
+else { Write-Host "no report written" -ForegroundColor Red; exit 1 }
 if ($code -eq -1) { Write-Host "TIMED OUT after $TimeoutSeconds s" -ForegroundColor Red; exit 1 }
 if ($code -ne 0) { Write-Host "self-test failed (exit $code)" -ForegroundColor Red; exit $code }
 Write-Host "self-test passed" -ForegroundColor Green

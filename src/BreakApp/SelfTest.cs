@@ -272,12 +272,17 @@ internal static class SelfTest
             w.Show();
             await Task.Delay(200);
             var cramped = new List<string>();
+            var unthemed = new List<string>();
             foreach (var (name, _) in SettingsPages.Categories)
             {
                 w.TestNavigate(name);
                 await Task.Delay(30);
                 cramped.AddRange(Cramped(name, w.TestPanel));
+                unthemed.AddRange(FindAll<Button>(w).Where(b => b.Style is null).Select(b => $"{name}: {b.GetType().Name} '{b.Content}'"));
             }
+            Check(unthemed.Count == 0, "buttons without the app theme: " + string.Join("; ", unthemed.Distinct()));
+            foreach (var t in new[] { typeof(ContextMenu), typeof(MenuItem), typeof(Separator) })
+                Check(Application.Current.TryFindResource(t) is Style, $"no themed style for {t.Name} (would look like plain Windows)");
             var rule = w.TestContext.Edit.Rules.First();
             w.TestNavigate("Rules", rule.Id.ToString());
             await Task.Delay(30);
@@ -289,13 +294,18 @@ internal static class SelfTest
             Check(w.TestResultCount > 0, "search for 'quiet' found nothing");
             w.TestSearch("");
 
+            // autosave: no Save click needed
             w.TestContext.Edit.Appearance.Accent = Accent.Teal;
             w.TestContext.MarkDirty();
-            w.TestSave();
-            Check(c.Settings.Appearance.Accent == Accent.Teal, "save didn't apply");
-            Check(File.ReadAllText(settingsPath).Contains("Teal"), "save didn't write the file");
+            await Task.Delay(1500);
+            Check(c.Settings.Appearance.Accent == Accent.Teal, "autosave didn't apply the change");
+            Check(File.ReadAllText(settingsPath).Contains("Teal"), "autosave didn't write the file");
+            // a pending change is flushed when the window closes
+            w.TestContext.Edit.Appearance.Accent = Accent.Violet;
+            w.TestContext.MarkDirty();
             w.Close();
             await Task.Delay(100);
+            Check(c.Settings.Appearance.Accent == Accent.Violet, "closing didn't save the last change");
         });
 
         await Step("Setup guide: all steps work, mic/camera is off, Finish saves", async () =>
@@ -305,6 +315,13 @@ internal static class SelfTest
             c.SaveSettings(s);
             var g = new SetupGuideWindow(c);
             g.Show();
+            g.GoToStep(0);
+            await Task.Delay(100);
+            // Preset cards: text must start at the same left edge (not centred with ragged gaps).
+            var cards = FindAll<Button>(g.TestBody).Where(b => b.Content is StackPanel).ToList();
+            Check(cards.Count == 4, $"expected 4 preset cards, found {cards.Count}");
+            var lefts = cards.Select(b => ((FrameworkElement)b.Content).TranslatePoint(new Point(0, 0), b).X).ToList();
+            Check(lefts.Max() - lefts.Min() < 1 && lefts.Max() < 30, "preset card text isn't left-aligned: offsets " + string.Join(", ", lefts.Select(x => x.ToString("0"))));
             for (var i = 0; i < 5; i++) { g.GoToStep(i); await Task.Delay(30); }
             Check(!g.TestContext.Edit.Pause.DetectMicCamera, "mic/camera detection is on by default");
             g.TestFinish();
@@ -333,6 +350,41 @@ internal static class SelfTest
             Check(c.Settings.Rules[0].AllowSkip, "weakening never applied after the cooldown");
         });
 
+        await Step("App picker: pick from a list of open apps, chips add and remove", async () =>
+        {
+            var list = new List<string>();
+            var changed = 0;
+            var editor = new AppListEditor(() => list, v => { list = v; changed++; });
+            var apps = new[]
+            {
+                new RunningApp("obs64", "OBS 30.1 - Profile: Untitled", null),
+                new RunningApp("chrome", "YouTube - Google Chrome", null),
+                new RunningApp("Discord", "Discord", null),
+            };
+            var picker = new AppPickerWindow(apps, list);
+            picker.Show();
+            await Task.Delay(100);
+            Check(picker.TestVisibleCount == 3, $"picker shows {picker.TestVisibleCount} apps, expected 3");
+            picker.TestFilter("disc");
+            await Task.Delay(50);
+            Check(picker.TestVisibleCount == 1, "search didn't filter the list");
+            picker.TestFilter("");
+            picker.TestSelect("obs64");
+            Check(picker.Chosen.SequenceEqual(["obs64"]), "picked app not returned: " + string.Join(",", picker.Chosen));
+            picker.Close();
+
+            editor.Add(["obs64", "OBS64", "chrome"]); // duplicates ignored, case-insensitive
+            Check(list.SequenceEqual(["obs64", "chrome"]), "list after add: " + string.Join(",", list));
+            Check(editor.TestChipCount == 2, $"{editor.TestChipCount} chips shown");
+            editor.Remove("obs64");
+            Check(list.SequenceEqual(["chrome"]) && editor.TestChipCount == 1, "remove didn't work");
+            Check(changed == 2, $"change notified {changed}×");
+
+            // the real scan must not crash and never lists Break App itself
+            var running = RunningApps.Scan();
+            Check(running.All(a => !a.ProcessName.Equals("BreakApp", StringComparison.OrdinalIgnoreCase)), "own process listed");
+        });
+
         await Step("No unhandled errors during the run", () =>
         {
             Check(App.CrashCount == 0, $"{App.CrashCount} unhandled exception(s), see app.log");
@@ -349,6 +401,17 @@ internal static class SelfTest
         File.WriteAllText(reportPath, sb.ToString());
         try { Directory.Delete(tmp, true); } catch { }
         return failed;
+    }
+
+    private static IEnumerable<T> FindAll<T>(DependencyObject? root) where T : DependencyObject
+    {
+        if (root is null) yield break;
+        for (var i = 0; i < System.Windows.Media.VisualTreeHelper.GetChildrenCount(root); i++)
+        {
+            var child = System.Windows.Media.VisualTreeHelper.GetChild(root, i);
+            if (child is T t) yield return t;
+            foreach (var x in FindAll<T>(child)) yield return x;
+        }
     }
 
     /// <summary>Loose rows (buttons etc.) directly after a card must have breathing room.</summary>

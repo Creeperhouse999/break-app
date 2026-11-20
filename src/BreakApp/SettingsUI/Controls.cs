@@ -120,6 +120,8 @@ public sealed class HotkeyBox : Button
 
     public HotkeyBox(string value, bool allowEmpty)
     {
+        // Implicit styles only match the exact type, so a Button subclass must opt into the theme explicitly.
+        SetResourceReference(StyleProperty, "BaseButton");
         _value = value;
         _allowEmpty = allowEmpty;
         MinWidth = 170;

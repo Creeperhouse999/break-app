@@ -53,6 +53,7 @@ public static class SettingsValidator
         s.Collision = E(s.Collision, CollisionPolicy.BiggerWins);
         s.CollisionWindow = Clamp(s.CollisionWindow, TimeSpan.Zero, TimeSpan.FromMinutes(10));
         s.Idle.Threshold = Clamp(s.Idle.Threshold, TimeSpan.FromSeconds(30), TimeSpan.FromMinutes(60));
+        s.Idle.FreezeAfter = Clamp(s.Idle.FreezeAfter, TimeSpan.FromSeconds(5), s.Idle.Threshold);
 
         s.Pause.MeetingProcesses = Strings(s.Pause.MeetingProcesses);
         s.Pause.MeetingTitlePatterns = (s.Pause.MeetingTitlePatterns ?? []).Where(x => !string.IsNullOrWhiteSpace(x)).ToList(); // keep spaces: "Meet - "

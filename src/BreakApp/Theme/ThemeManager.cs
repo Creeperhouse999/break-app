@@ -106,7 +106,7 @@ public static class ThemeManager
 
         if (!dark)
         {
-            d["CardBackgroundBrush"] = Grad(Hex("#FCFFFFFF"), Hex("#FAEFF6FF"), new Point(0.2, 0), new Point(0.8, 1));
+            d["CardBackgroundBrush"] = Grad(Hex("#FFFFFFFF"), Hex("#FFEFF6FF"), new Point(0.2, 0), new Point(0.8, 1));
             d["WindowBackgroundBrush"] = B("#F3F8FF");
             d["SidebarBrush"] = B("#E8F0FC");
             d["SurfaceBrush"] = B("#FFFFFF");
@@ -132,7 +132,7 @@ public static class ThemeManager
         }
         else
         {
-            d["CardBackgroundBrush"] = Grad(Hex("#FC142248"), Hex("#FA0B1838"), new Point(0.2, 0), new Point(0.8, 1));
+            d["CardBackgroundBrush"] = Grad(Hex("#FF142248"), Hex("#FF0B1838"), new Point(0.2, 0), new Point(0.8, 1));
             d["WindowBackgroundBrush"] = B("#0F1D40");
             d["SidebarBrush"] = B("#0B1734");
             d["SurfaceBrush"] = B("#15264F");

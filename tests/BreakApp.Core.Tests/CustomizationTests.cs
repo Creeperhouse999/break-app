@@ -116,6 +116,9 @@ public class CustomizationTests
     public void General_Defaults24Hour() => Assert.True(new GeneralSettings().Use24HourClock);
 
     [Fact]
+    public void FullscreenBreak_SolidByDefault() => Assert.Equal(1.0, new AppearanceSettings().Opacity);
+
+    [Fact]
     public void MicCameraDetection_OffByDefault() => Assert.False(new PauseSettings().DetectMicCamera);
 
     [Fact]

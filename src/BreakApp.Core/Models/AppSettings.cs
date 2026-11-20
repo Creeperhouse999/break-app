@@ -51,6 +51,8 @@ public sealed class IdleSettings
 {
     public bool NaturalBreaks { get; set; } = true;
     public TimeSpan Threshold { get; set; } = TimeSpan.FromMinutes(3);
+    /// <summary>Active-time timers pause after this long without input; the idle seconds already counted are given back.</summary>
+    public TimeSpan FreezeAfter { get; set; } = TimeSpan.FromMinutes(1);
     public bool DetectKeyboardMouse { get; set; } = true;
     public bool DetectGamepad { get; set; } = true;
     public bool DetectMedia { get; set; } = true;
@@ -86,7 +88,7 @@ public sealed class AppearanceSettings
 {
     public ThemeMode Theme { get; set; } = ThemeMode.Auto;
     public Accent Accent { get; set; } = Accent.Blue;
-    public double Opacity { get; set; } = 0.95;
+    public double Opacity { get; set; } = 1.0;
     public double FontScale { get; set; } = 1.0;
     public Corner NotificationCorner { get; set; } = Corner.BottomRight;
     public CountdownFormat Countdown { get; set; } = CountdownFormat.Ring;

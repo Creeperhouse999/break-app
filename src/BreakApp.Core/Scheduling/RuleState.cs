@@ -16,6 +16,8 @@ internal sealed class RuleState
     public RulePhase Phase = RulePhase.Counting;
     /// <summary>Already satisfied by the current idle stretch; cleared when the user is active again.</summary>
     public bool IdleSatisfied;
+    /// <summary>Seconds counted since the last input (given back when the no-input pause starts).</summary>
+    public TimeSpan IdleCounted;
     /// <summary>Rules merged into this one when it is the primary of a bigger-wins break.</summary>
     public List<Guid> MergedIds = [];
 }

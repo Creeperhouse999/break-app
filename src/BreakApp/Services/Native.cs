@@ -169,6 +169,38 @@ internal static partial class Native
     [LibraryImport("user32.dll")]
     public static partial uint GetWindowThreadProcessId(IntPtr hWnd, out uint lpdwProcessId);
 
+    private const int DWMWA_CLOAKED = 14;
+    private const uint GW_OWNER = 4;
+
+    [LibraryImport("dwmapi.dll")]
+    private static partial int DwmGetWindowAttribute(IntPtr hwnd, int attr, out int value, int size);
+
+    [LibraryImport("user32.dll")]
+    private static partial IntPtr GetWindow(IntPtr hWnd, uint uCmd);
+
+    /// <summary>Windows the user can actually see and switch to (same idea as the Alt-Tab list): visible, not cloaked, not tool windows, not owned popups.</summary>
+    public static List<(string Title, uint Pid)> AppWindows()
+    {
+        var list = new List<(string, uint)>();
+        var sb = new StringBuilder(512);
+        EnumWindows((h, _) =>
+        {
+            if (!IsWindowVisible(h) || GetWindow(h, GW_OWNER) != IntPtr.Zero) return true;
+            var ex = GetWindowLongPtr(h, GWL_EXSTYLE).ToInt64();
+            if ((ex & WS_EX_TOOLWINDOW) != 0) return true;
+            try { if (DwmGetWindowAttribute(h, DWMWA_CLOAKED, out var cloaked, sizeof(int)) == 0 && cloaked != 0) return true; }
+            catch (DllNotFoundException) { }
+            sb.Clear();
+            if (GetWindowText(h, sb, sb.Capacity) > 0)
+            {
+                GetWindowThreadProcessId(h, out var pid);
+                list.Add((sb.ToString(), pid));
+            }
+            return true;
+        }, IntPtr.Zero);
+        return list;
+    }
+
     /// <summary>Titles of visible top-level windows with their process ids.</summary>
     public static List<(string Title, uint Pid)> VisibleWindowTitles()
     {
@@ -206,7 +238,10 @@ internal static partial class Native
     private static extern bool QueryFullProcessImageName(IntPtr hProcess, uint flags, StringBuilder exeName, ref uint size);
 
     /// <summary>Process name without ".exe" (like Process.ProcessName), or null when not accessible.</summary>
-    public static string? ProcessName(uint pid)
+    public static string? ProcessName(uint pid) => ProcessPath(pid) is { } p ? System.IO.Path.GetFileNameWithoutExtension(p) : null;
+
+    /// <summary>Full exe path of a process, or null when not accessible.</summary>
+    public static string? ProcessPath(uint pid)
     {
         var h = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, false, pid);
         if (h == IntPtr.Zero) return null;
@@ -214,7 +249,7 @@ internal static partial class Native
         {
             var sb = new StringBuilder(1024);
             uint size = (uint)sb.Capacity;
-            return QueryFullProcessImageName(h, 0, sb, ref size) ? System.IO.Path.GetFileNameWithoutExtension(sb.ToString()) : null;
+            return QueryFullProcessImageName(h, 0, sb, ref size) ? sb.ToString() : null;
         }
         finally { CloseHandle(h); }
     }

@@ -41,8 +41,8 @@ public class SchedulerIdleCollisionTests : SchedulerTestBase
         Run(60);
         var e = Run(240, idleFrom: 1);
         Assert.Empty(Sats(e));
-        // idle seconds below the threshold (1..179) still count as active, the rest is frozen
-        Assert.Equal(TimeSpan.FromSeconds(3600 - 60 - 179), Sch.TimeUntil(stretch.Id));
+        // time without input never counts (the timer pauses after FreezeAfter and gives back what it counted)
+        Assert.Equal(TimeSpan.FromSeconds(3600 - 60), Sch.TimeUntil(stretch.Id));
     }
 
     [Fact]
@@ -195,5 +195,67 @@ public class SchedulerIdleCollisionTests : SchedulerTestBase
         Run(10, pause: new PauseState(true, "x"));
         Run(1);
         Assert.Equal(TimeSpan.FromSeconds(599), Sch.TimeUntil(r.Id));
+    }
+}
+
+public class IdleFreezeTests : SchedulerTestBase
+{
+    [Fact]
+    public void FreezeAfter_DefaultsToOneMinute() => Assert.Equal(TimeSpan.FromMinutes(1), new IdleSettings().FreezeAfter);
+
+    [Fact]
+    public void ActiveTime_TimeWithoutInputNeverCounts()
+    {
+        Settings.Idle.NaturalBreaks = false;
+        var r = Rule("A", 600, 10);
+        Start(r);
+        Run(100);
+        Run(200, idleFrom: 1);  // 200 s without input
+        Assert.Equal(TimeSpan.FromSeconds(500), Sch.TimeUntil(r.Id));
+        Run(50);                // back at the PC
+        Assert.Equal(TimeSpan.FromSeconds(450), Sch.TimeUntil(r.Id));
+    }
+
+    [Fact]
+    public void ActiveTime_ShortPausesBelowFreezeAfterStillCount()
+    {
+        Settings.Idle.NaturalBreaks = false;
+        var r = Rule("A", 600, 10);
+        Start(r);
+        Run(30, idleFrom: 1);   // reading for 30 s: under the 1 min freeze, counts
+        Assert.Equal(TimeSpan.FromSeconds(570), Sch.TimeUntil(r.Id));
+    }
+
+    [Fact]
+    public void ClockTime_KeepsCountingWithoutInput()
+    {
+        Settings.Idle.NaturalBreaks = false;
+        var r = Rule("A", 600, 10, TimerMode.ClockTime);
+        Start(r);
+        Run(200, idleFrom: 1);
+        Assert.Equal(TimeSpan.FromSeconds(400), Sch.TimeUntil(r.Id));
+    }
+
+    [Fact]
+    public void IsFrozen_ReportsNoInputPause()
+    {
+        Settings.Idle.NaturalBreaks = false;
+        Start(Rule("A", 600, 10));
+        Run(70, idleFrom: 1);
+        Assert.True(Sch.TimersFrozen);
+        Run(1);
+        Assert.False(Sch.TimersFrozen);
+    }
+
+    [Fact]
+    public void Normalize_ClampsFreezeAfter()
+    {
+        var s = AppSettings.CreateDefault();
+        s.Idle.FreezeAfter = TimeSpan.Zero;
+        Core.Settings.SettingsValidator.Normalize(s);
+        Assert.Equal(TimeSpan.FromSeconds(5), s.Idle.FreezeAfter);
+        s.Idle.FreezeAfter = TimeSpan.FromHours(2);
+        Core.Settings.SettingsValidator.Normalize(s);
+        Assert.Equal(s.Idle.Threshold, s.Idle.FreezeAfter);
     }
 }

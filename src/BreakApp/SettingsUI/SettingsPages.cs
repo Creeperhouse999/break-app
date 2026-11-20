@@ -83,7 +83,7 @@ public static class SettingsPages
             menu.Items.Add(item);
         }
         add.ContextMenu = menu;
-        add.Click += (_, _) => { menu.PlacementTarget = add; menu.IsOpen = true; };
+        add.Click += (_, _) => { menu.PlacementTarget = add; menu.Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom; menu.VerticalOffset = 4; menu.IsOpen = true; };
         b.AddLoose(PageBuilder.Buttons(add)); // right under the rule list
 
         b.Group("When rules overlap");
@@ -319,23 +319,13 @@ public static class SettingsPages
             () => s.DetectMicCamera, v => s.DetectMicCamera = v, tip: "Uses Windows' privacy indicator data (the mic icon in the taskbar). If you voice-chat while gaming, leave this off or breaks would pause the whole time you talk.");
         b.Lines("Pause.MeetingTitlePatterns", "Meeting window titles", "Pause while a window title contains any of these (one per line).",
             () => s.MeetingTitlePatterns, v => s.MeetingTitlePatterns = v, advanced: true, minLines: 2);
-        b.Lines("Pause.MeetingProcesses", "Pause while these apps are running", "Process names, one per line (e.g. obs64). Breaks pause as long as the app is open.",
-            () => s.MeetingProcesses, v => s.MeetingProcesses = v, advanced: true, minLines: 2);
+        b.Apps("Pause.MeetingProcesses", "Pause while these apps are running", "Breaks pause as long as one of these apps is open.",
+            () => s.MeetingProcesses, v => s.MeetingProcesses = v, advanced: true);
 
         b.Group("Exceptions");
-        b.Lines("Pause.ForegroundExceptions", "Pause while these apps are in front", "Process names, one per line. Breaks wait while one of them is the active window.",
-            () => s.ForegroundExceptions, v => s.ForegroundExceptions = v, minLines: 2,
-            tip: "Example: obs64, Photoshop, vlc. Find a name in Task Manager → Details. Games are NOT paused unless you list them here.");
-        var current = b.Button("Add the app I used last", () =>
-        {
-            var name = ctx.C.LastForegroundApp;
-            if (name is null || s.ForegroundExceptions.Contains(name, StringComparer.OrdinalIgnoreCase)) return;
-            s.ForegroundExceptions.Add(name);
-            ctx.MarkDirty();
-            ctx.Rebuild();
-        });
-        current.ToolTip = "Adds the last app (other than Break App) that was in front: " + (ctx.C.LastForegroundApp ?? "none yet");
-        b.Add(current);
+        b.Apps("Pause.ForegroundExceptions", "Pause while these apps are in front", "Breaks wait while one of these is the window you're using.",
+            () => s.ForegroundExceptions, v => s.ForegroundExceptions = v,
+            tip: "Click \"+ Add app…\" and pick from your open apps (e.g. OBS, Photoshop, a video player). Games are NOT paused unless you add them here.");
 
         b.Group("Quiet times", "No breaks during these times — lessons, meetings, gaming nights…");
         b.Row("Pause.QuietTimes", "Quiet times", "Weekly. Pick days, start, end and an optional label.",
@@ -359,6 +349,9 @@ public static class SettingsPages
             () => s.NaturalBreaks, v => s.NaturalBreaks = v, tip: "Example: away 6 min → the 5 min stretch counts as taken and its timer restarts.");
         b.Duration("Idle.Threshold", "Away after", "No activity for this long = you're away.", () => s.Threshold, v => s.Threshold = v,
             TimeSpan.FromSeconds(30), TimeSpan.FromMinutes(60));
+        b.Duration("Idle.FreezeAfter", "Pause timers after no input for", "No keyboard, mouse, controller or video for this long: the countdown to the next break stops.",
+            () => s.FreezeAfter, v => s.FreezeAfter = v, TimeSpan.FromSeconds(5), TimeSpan.FromMinutes(60),
+            tip: "Time without input never counts toward the next break. Example: 1 min — reading for 30 s still counts; leaving for 10 min doesn't.");
         b.Group("What counts as activity");
         b.Toggle("Idle.DetectKeyboardMouse", "Keyboard and mouse", "", () => s.DetectKeyboardMouse, v => s.DetectKeyboardMouse = v);
         b.Toggle("Idle.DetectGamepad", "Game controller", "Xbox-compatible controllers, so gaming counts as active.", () => s.DetectGamepad, v => s.DetectGamepad = v);
@@ -609,7 +602,7 @@ public static class SettingsPages
             b.Button("Open data folder", () => Process.Start(new ProcessStartInfo(SettingsStore.AppDataDir) { UseShellExecute = true })),
             b.Button("Reset everything", () =>
             {
-                if (MessageBox.Show("Reset all settings to the defaults? (Not saved until you press Save.)", "Reset", MessageBoxButton.OKCancel, MessageBoxImage.Warning) != MessageBoxResult.OK) return;
+                if (MessageBox.Show("Reset all settings to the defaults? This takes effect right away.", "Reset", MessageBoxButton.OKCancel, MessageBoxImage.Warning) != MessageBoxResult.OK) return;
                 ctx.Edit = AppSettings.CreateDefault();
                 ctx.MarkAppearance();
                 ctx.Rebuild();

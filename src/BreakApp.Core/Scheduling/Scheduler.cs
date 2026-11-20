@@ -14,6 +14,10 @@ public sealed class Scheduler
     private readonly Dictionary<Guid, RuleState> _state = [];
     private DateTime _lastTick;
     private bool _wasPaused;
+    private TimeSpan _lastIdleFor;
+
+    /// <summary>True while active-time timers are paused because there was no input for <see cref="IdleSettings.FreezeAfter"/>.</summary>
+    public bool TimersFrozen { get; private set; }
 
     /// <summary>Tick gaps longer than this are treated as sleep / clock jumps.</summary>
     private static readonly TimeSpan GapLimit = TimeSpan.FromSeconds(30);
@@ -94,6 +98,11 @@ public sealed class Scheduler
         var gap = delta > GapLimit ? delta : TimeSpan.Zero;
         var idleFor = activity.IdleFor > gap ? activity.IdleFor : gap;
         var idle = idleFor >= _settings.Idle.Threshold || gap > TimeSpan.Zero;
+        // No input for FreezeAfter (or a sleep gap): active-time timers stop and give back the idle seconds they counted.
+        var frozen = idleFor >= _settings.Idle.FreezeAfter || gap > TimeSpan.Zero;
+        var newInput = idleFor < _lastIdleFor || idleFor == TimeSpan.Zero;
+        _lastIdleFor = idleFor;
+        TimersFrozen = frozen;
         var natural = _settings.Idle.NaturalBreaks;
         var active = ActiveRules(now).ToList();
 
@@ -123,7 +132,19 @@ public sealed class Scheduler
                 continue;
             }
 
-            if (r.TimerMode == TimerMode.ClockTime || !idle) st.Elapsed += delta;
+            if (newInput) st.IdleCounted = TimeSpan.Zero;
+            if (r.TimerMode == TimerMode.ClockTime) st.Elapsed += delta;
+            else if (!frozen)
+            {
+                st.Elapsed += delta;
+                if (idleFor > TimeSpan.Zero) st.IdleCounted += delta;
+            }
+            else if (st.IdleCounted > TimeSpan.Zero)
+            {
+                st.Elapsed -= st.IdleCounted;
+                if (st.Elapsed < TimeSpan.Zero) st.Elapsed = TimeSpan.Zero;
+                st.IdleCounted = TimeSpan.Zero;
+            }
         }
 
         foreach (var r in active)

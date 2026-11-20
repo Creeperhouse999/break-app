@@ -55,6 +55,9 @@ public sealed class BreakCoordinator : IDisposable
     internal Func<PauseSettings, DateTime, Core.Pausing.PauseSignals>? PauseOverride { get; set; }
     internal void TickNow() => Tick();
 
+    /// <summary>When set, breaks are held (e.g. while the setup guide is open). Shown as the pause reason.</summary>
+    public string? HoldReason { get; set; }
+
     public BreakCoordinator(AppSettings settings, string settingsPath, IClock clock, double timeScale, string historyPath)
     {
         Settings = settings;
@@ -91,6 +94,7 @@ public sealed class BreakCoordinator : IDisposable
         // never let it pause/end itself.
         if (Presenter.IsRunning) signals = signals with { DoNotDisturb = false, FullscreenApp = false };
         Pause = PauseEvaluator.Evaluate(Settings.Pause, signals, now, Settings.General.Use24HourClock);
+        if (HoldReason is { } hold && !Pause.IsPaused) Pause = new PauseState(true, hold);
 
         if (_running is not null && Presenter.IsRunning && PauseEvaluator.ShouldEndRunningBreak(_running.Rule, _pausedAtStart, Pause))
             Presenter.End(BreakOutcome.InterruptedByMeeting);

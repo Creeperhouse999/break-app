@@ -30,6 +30,13 @@ public partial class App : Application
         AppDomain.CurrentDomain.UnhandledException += (_, ex) => Crash(ex.ExceptionObject as Exception);
         TaskScheduler.UnobservedTaskException += (_, ex) => { Log("unobserved: " + ex.Exception); ex.SetObserved(); };
 
+        // Headless tool modes run alongside an installed copy: no single-instance check, never signal the running app.
+        if (e.Args.Any(a => a is "--self-test" or "--check-settings" or "--render-screenshots" or "--ux-tour"))
+        {
+            StartApp(e.Args);
+            return;
+        }
+
         _mutex = new Mutex(true, MutexName, out var first);
         if (!first)
         {
@@ -40,7 +47,7 @@ public partial class App : Application
         _showEvent = new EventWaitHandle(false, EventResetMode.AutoReset, ShowEventName);
         new Thread(() =>
         {
-            while (_showEvent.WaitOne()) Dispatcher.BeginInvoke(() => ShowSettings(null));
+            while (_showEvent.WaitOne()) Dispatcher.BeginInvoke(() => { if (_setupGuide is not null) _setupGuide.Activate(); else ShowSettings(null); });
         }) { IsBackground = true, Name = "show-listener" }.Start();
 
         try { StartApp(e.Args); }
@@ -56,6 +63,19 @@ public partial class App : Application
 
     private void StartApp(string[] args)
     {
+        var tour = Array.IndexOf(args, "--ux-tour");
+        if (tour >= 0)
+        {
+            var dir = args.ElementAtOrDefault(tour + 1) ?? Path.Combine(Path.GetTempPath(), "breakapp-tour");
+            Dispatcher.BeginInvoke(async () =>
+            {
+                try { await UxTour.Run(dir); }
+                catch (Exception ex) { File.WriteAllText(Path.Combine(dir, "tour-error.txt"), ex.ToString()); }
+                Shutdown();
+            });
+            return;
+        }
+
         var selfTest = Array.IndexOf(args, "--self-test");
         if (selfTest >= 0)
         {
@@ -214,7 +234,8 @@ public partial class App : Application
         {
             _setupGuide = new SettingsUI.SetupGuideWindow(Coordinator);
             _setupGuide.OpenSettingsRequested += () => ShowSettings(null);
-            _setupGuide.Closed += (_, _) => _setupGuide = null;
+            Coordinator.HoldReason = "Setup guide open";
+            _setupGuide.Closed += (_, _) => { _setupGuide = null; Coordinator.HoldReason = null; };
             _setupGuide.Show();
         }
         _setupGuide.Activate();

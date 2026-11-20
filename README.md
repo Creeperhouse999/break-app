@@ -35,7 +35,7 @@ It's a small native tray app (C# / WPF, ~0.5 MB exe), inspired by [Stretchly](ht
 | 🔒 **Real input lock** | *Locked*: keyboard and mouse blocked — Alt+Tab and the Win key too — until your escape combo. *TOTAL LOCK*: no way out until the timer ends (asks "are you sure?" first). |
 | ⚠️ **Warnings** | A heads-up before each break with **Start now / Postpone / Skip** (each optional). |
 | ⏸️ **Smart pausing** | Quiet times (lessons, gaming nights), apps you never want interrupted, Do Not Disturb, manual pause — and optional call detection. |
-| 🚶 **Natural breaks** | Time away from the PC counts as a break. Gamepad input and watching videos count as activity. |
+| 🚶 **Natural breaks** | Time without input doesn't count toward the next break (the countdown pauses after 1 min of no input), and time away counts as a break. Gamepad input and watching videos count as activity. |
 | 🤝 **Overlapping rules** | Bigger break wins, run both, or reset all timers. |
 | 🧱 **Commitment mode** *(optional)* | No skipping, pausing or quitting shortly before strict breaks; making them weaker waits for a cooldown. |
 | 🎨 **Customize almost everything** | Every text the app shows (with `{rule}`, `{time}`… placeholders), themes, any accent colour, break-screen colours, opacity, background image, text size, sounds, shortcuts, 12/24 h clock. |
@@ -75,7 +75,7 @@ Your settings and history are stored in `%AppData%\BreakApp\`. To uninstall, qui
 
 - **Left-click / double-click** the tray icon → Settings. **Right-click** → take a break now, skip next, pause (15 min … until resumed), stats, setup guide, quit.
 - The tray icon's ring shrinks as the next break gets closer; hover it for the exact time.
-- **Settings** has 10 categories — Rules · Warnings · Lock & Commitment · Pausing & Meetings · Activity & Idle · Appearance · Texts · Sounds · Stats · General. Every setting has a short description and an ⓘ tip; **Ctrl+F** searches all of them; **Advanced** shows the rarely used ones; **Presets** (Gentle · Balanced · Eye care · Strict) show exactly what will change before applying.
+- **Settings** has 10 categories — Rules · Warnings · Lock & Commitment · Pausing & Meetings · Activity & Idle · Appearance · Texts · Sounds · Stats · General. Every setting has a short description and an ⓘ tip; changes **save automatically**; **Ctrl+F** searches all of them; **Advanced** shows the rarely used ones; **Presets** (Gentle · Balanced · Eye care · Strict) show exactly what will change before applying.
 - Default shortcuts: **Ctrl+Alt+P** pause/resume, **Ctrl+Alt+B** take a break now, **Ctrl+Shift+Alt+B** end a *Locked* break early. All changeable.
 
 ## FAQ
@@ -84,7 +84,7 @@ Your settings and history are stored in `%AppData%\BreakApp\`. To uninstall, qui
 Only if you turn on *Pause while the mic or camera is in use*. It's **off by default** for exactly this reason: Discord and in-game voice chat use the mic too. Turn it on if you mostly need it for work calls (Google Meet, Zoom, Teams).
 
 **Do games pause my breaks?**
-No — breaks still appear over games. If you want a specific game (or any app) to never be interrupted, add its process name under *Pausing & Meetings → Pause while these apps are in front*.
+No — breaks still appear over games. If you want a specific game (or any app) to never be interrupted, add it under *Pausing & Meetings → Pause while these apps are in front* — click **+ Add app…** and pick it from the list of open apps.
 
 **Can I always get out of a locked break?**
 The lock is best effort and needs no admin rights. These always work, by Windows design: **Ctrl+Alt+Del** → Task Manager, admin windows that were already open, and UAC prompts. *Locked* breaks also end with your escape combo; *TOTAL LOCK* doesn't.

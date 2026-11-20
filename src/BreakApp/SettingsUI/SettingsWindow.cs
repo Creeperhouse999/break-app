@@ -5,6 +5,7 @@ using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Media.Animation;
+using System.Windows.Threading;
 using BreakApp.Core.Models;
 using BreakApp.Core.Settings;
 using BreakApp.Services;
@@ -27,6 +28,7 @@ public sealed class SettingsWindow : Window
     private readonly ListBox _results = new() { BorderThickness = new Thickness(0), Background = Brushes.Transparent, Visibility = Visibility.Collapsed };
     private readonly TextBlock _status = new() { VerticalAlignment = VerticalAlignment.Center, FontSize = 12.5 };
     private readonly CheckBox _advanced = new() { Content = "Advanced", VerticalAlignment = VerticalAlignment.Center };
+    private bool _showAllOnce;
     private string _page = "Rules";
     private string? _sub;
     private bool _dirty, _saved;
@@ -132,7 +134,7 @@ public sealed class SettingsWindow : Window
         _advanced.IsChecked = _ctx.Edit.General.AdvancedMode;
         _advanced.Click += (_, _) => { _ctx.Edit.General.AdvancedMode = _advanced.IsChecked == true; SetDirty(true); Show(_page, _sub); };
         tools.Children.Add(_advanced);
-        var presets = new Button { Content = "Presets ▾", Margin = new Thickness(14, 0, 0, 0) };
+        var presets = _presetsButton = new Button { Content = "Presets ▾", Margin = new Thickness(14, 0, 0, 0) };
         presets.Click += (_, _) => ShowPresets(presets);
         tools.Children.Add(presets);
         Grid.SetColumn(tools, 1);
@@ -147,13 +149,11 @@ public sealed class SettingsWindow : Window
         _status.SetResourceReference(TextBlock.ForegroundProperty, "Text3Brush");
         footer.Children.Add(_status);
         var buttons = new StackPanel { Orientation = Orientation.Horizontal };
-        var cancel = new Button { Content = "Close", Margin = new Thickness(0, 0, 8, 0), Height = 34, Padding = new Thickness(18, 0, 18, 0) };
-        cancel.Click += (_, _) => Close();
-        var save = new Button { Content = "Save", Height = 34, Padding = new Thickness(24, 0, 24, 0) };
-        save.SetResourceReference(StyleProperty, "PrimaryButton");
-        save.Click += (_, _) => Save();
-        buttons.Children.Add(cancel);
-        buttons.Children.Add(save);
+        // Changes save automatically; Close just closes (and flushes the last change).
+        var close = new Button { Content = "Close", Height = 34, Padding = new Thickness(22, 0, 22, 0) };
+        close.SetResourceReference(StyleProperty, "PrimaryButton");
+        close.Click += (_, _) => Close();
+        buttons.Children.Add(close);
         Grid.SetColumn(buttons, 1);
         footer.Children.Add(buttons);
         var footerBorder = new Border { Child = footer, BorderThickness = new Thickness(0, 1, 0, 0) };
@@ -191,6 +191,8 @@ public sealed class SettingsWindow : Window
 
     private void Show(string page, string? sub)
     {
+        _ctx.ShowAll = _showAllOnce;
+        _showAllOnce = false;
         _page = page;
         _sub = sub;
         _ctx.Rows.Clear();
@@ -209,8 +211,8 @@ public sealed class SettingsWindow : Window
     private List<RowInfo> IndexAll()
     {
         var ctx = new SettingsContext(_ctx.Edit, _c);
+        var advanced = _ctx.Edit.General.AdvancedMode; // read BEFORE flipping it (same object)
         ctx.Edit.General.AdvancedMode = true;
-        var advanced = _ctx.Edit.General.AdvancedMode;
         try
         {
             foreach (var (name, _) in SettingsPages.Categories)
@@ -221,13 +223,17 @@ public sealed class SettingsWindow : Window
         return ctx.Rows;
     }
 
+    private string? _titleBeforeSearch;
+
     private void RunSearch()
     {
         var q = _search.Text.Trim();
+        if (q.Length > 0 && _results.Visibility != Visibility.Visible) _titleBeforeSearch = _pageTitle.Text;
         if (q.Length == 0)
         {
             _results.Visibility = Visibility.Collapsed;
             _scroll.Visibility = Visibility.Visible;
+            _pageTitle.Text = _titleBeforeSearch ?? _pageTitle.Text;
             return;
         }
         var words = q.Split(' ', StringSplitOptions.RemoveEmptyEntries);
@@ -247,13 +253,12 @@ public sealed class SettingsWindow : Window
         if (hits.Count == 0) _results.Items.Add(new ListBoxItem { Content = new TextBlock { Text = "Nothing found." }, IsEnabled = false });
         _results.Visibility = Visibility.Visible;
         _scroll.Visibility = Visibility.Collapsed;
+        _pageTitle.Text = "Search";
     }
 
     private void GoTo(RowInfo hit)
     {
-        var wasAdvanced = _ctx.Edit.General.AdvancedMode;
-        _ctx.Edit.General.AdvancedMode = true; // make sure the row is visible
-        if (!wasAdvanced) SetDirty(true);
+        _showAllOnce = true; // reveal advanced rows for this view only; the user's setting is untouched
         _search.Text = "";
         Show(hit.Category, hit.SubPage);
         var row = _ctx.Rows.FirstOrDefault(r => r.Group == hit.Group && r.Title == hit.Title);
@@ -272,9 +277,22 @@ public sealed class SettingsWindow : Window
 
     // ------------------------------------------------------------------ presets
 
+    private Button? _presetsButton;
+    private ContextMenu? _openMenu;
+    internal void TestOpenPresets() { ShowPresets(_presetsButton!); if (_openMenu is not null) _openMenu.StaysOpen = true; }
+    internal void TestCloseMenus() { if (_openMenu is not null) _openMenu.IsOpen = false; }
+
     private void ShowPresets(Button anchor)
     {
-        var menu = new ContextMenu { PlacementTarget = anchor };
+        // Drop down under the button, right edges aligned (the button sits at the window's right edge).
+        var menu = new ContextMenu
+        {
+            PlacementTarget = anchor,
+            Placement = System.Windows.Controls.Primitives.PlacementMode.Custom,
+            CustomPopupPlacementCallback = (popup, target, _) =>
+                [new System.Windows.Controls.Primitives.CustomPopupPlacement(new Point(target.Width - popup.Width + 10, target.Height + 4), System.Windows.Controls.Primitives.PopupPrimaryAxis.Horizontal)],
+        };
+        _openMenu = menu;
         foreach (var p in Presets.All)
         {
             var item = new MenuItem { Header = new StackPanel { Children =
@@ -287,7 +305,7 @@ public sealed class SettingsWindow : Window
                 var after = p.Apply(_ctx.Edit);
                 var diff = Presets.Diff(_ctx.Edit, after);
                 if (diff.Count == 0) { MessageBox.Show(this, "Your settings already match this preset.", p.Name); return; }
-                var text = $"Apply the {p.Name} preset? These will change:\n\n• " + string.Join("\n• ", diff) + "\n\n(Not saved until you press Save.)";
+                var text = $"Apply the {p.Name} preset? These will change:\n\n• " + string.Join("\n• ", diff);
                 if (MessageBox.Show(this, text, "Apply preset", MessageBoxButton.OKCancel, MessageBoxImage.Question) != MessageBoxResult.OK) return;
                 _ctx.Edit = after;
                 SetDirty(true);
@@ -300,37 +318,51 @@ public sealed class SettingsWindow : Window
 
     // ------------------------------------------------------------------ save / close
 
+    private DispatcherTimer? _autosave;
+    private string? _pendingNote;
+
+    /// <summary>Autosave: every change saves itself ~0.7 s later (debounced so typing doesn't save per keystroke).</summary>
     private void SetDirty(bool dirty)
     {
         _dirty = dirty;
-        _status.Text = dirty ? "● Unsaved changes" : "All changes saved";
-        _status.SetResourceReference(TextBlock.ForegroundProperty, dirty ? "WarningBrush" : "Text3Brush");
+        if (dirty)
+        {
+            _autosave ??= new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(700) };
+            _autosave.Stop();
+            _autosave.Tick -= AutosaveTick;
+            _autosave.Tick += AutosaveTick;
+            _autosave.Start();
+            _status.Text = "Saving…";
+            _status.SetResourceReference(TextBlock.ForegroundProperty, "Text3Brush");
+            return;
+        }
+        _status.Text = _pendingNote ?? "✓ Saved automatically";
+        _status.SetResourceReference(TextBlock.ForegroundProperty, _pendingNote is null ? "Text3Brush" : "WarningBrush");
     }
 
+    private void AutosaveTick(object? sender, EventArgs e)
+    {
+        _autosave?.Stop();
+        Save();
+    }
+
+    /// <summary>Saves the edited copy. Keeps editing the same objects (no page rebuild), so typing is never interrupted.</summary>
     private void Save()
     {
-        var copy = SettingsStore.Clone(_ctx.Edit);
-        var message = _c.SaveSettings(copy);
+        _autosave?.Stop();
+        if (!_dirty) return;
+        var message = _c.SaveSettings(SettingsStore.Clone(_ctx.Edit));
         _saved = true;
-        _ctx.Edit = SettingsStore.Clone(_c.Settings);
+        // Commitment mode: some changes wait for the cooldown; say so in the status line instead of a popup per keystroke.
+        _pendingNote = _c.Guard.PendingAppliesAt is DateTime at ? $"⏳ Saved — commitment changes apply at {at:HH:mm}" : null;
+        if (message is not null) _status.ToolTip = message;
         SetDirty(false);
-        if (message is not null)
-        {
-            MessageBox.Show(this, message, "Commitment mode", MessageBoxButton.OK, MessageBoxImage.Information);
-            ThemeManager.Apply(_c.Settings.Appearance);
-        }
-        Show(_page, _sub is not null && _ctx.Edit.Rules.Any(r => r.Id.ToString() == _sub) ? _sub : null);
     }
 
     protected override void OnClosing(CancelEventArgs e)
     {
-        if (_dirty)
-        {
-            var r = MessageBox.Show(this, "Save your changes?", "Break App", MessageBoxButton.YesNoCancel, MessageBoxImage.Question);
-            if (r == MessageBoxResult.Cancel) { e.Cancel = true; return; }
-            if (r == MessageBoxResult.Yes) Save();
-        }
-        ThemeManager.Apply(_c.Settings.Appearance); // drop any unsaved live preview
+        if (_dirty) Save(); // flush the last change
+        ThemeManager.Apply(_c.Settings.Appearance);
         base.OnClosing(e);
     }
 

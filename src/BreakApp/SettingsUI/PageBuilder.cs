@@ -17,7 +17,9 @@ public sealed class SettingsContext(AppSettings edit, BreakCoordinator coordinat
     public BreakCoordinator C { get; } = coordinator;
     public List<RowInfo> Rows { get; } = [];
     public HashSet<string> Paths { get; } = [];
-    public bool Advanced => Edit.General.AdvancedMode;
+    /// <summary>Temporarily show advanced rows (jumping to a search result) without changing the setting.</summary>
+    public bool ShowAll { get; set; }
+    public bool Advanced => Edit.General.AdvancedMode || ShowAll;
     public event Action? Changed;
     public event Action? AppearanceChanged;
     public Action<string, string?> Navigate { get; set; } = (_, _) => { };
@@ -241,7 +243,7 @@ public sealed class PageBuilder
         var box = new TextBox
         {
             AcceptsReturn = true, TextWrapping = TextWrapping.Wrap, MinHeight = 18 * minLines + 14, MaxHeight = 220,
-            VerticalScrollBarVisibility = ScrollBarVisibility.Auto, VerticalContentAlignment = VerticalAlignment.Top,
+            VerticalScrollBarVisibility = ScrollBarVisibility.Auto, VerticalContentAlignment = VerticalAlignment.Top, Padding = new Thickness(8, 6, 8, 6),
             Text = string.Join(Environment.NewLine, get()),
         };
         box.TextChanged += (_, _) =>
@@ -296,6 +298,14 @@ public sealed class PageBuilder
         var picker = new SoundPicker(get(), _ctx.C.Sound);
         picker.ValueChanged += v => { set(v); Changed(false); };
         return Row(path, title, description, picker, tip, advanced);
+    }
+
+    /// <summary>A list of apps (process names) picked from the open apps, shown as removable chips.</summary>
+    public FrameworkElement Apps(string path, string title, string description, Func<List<string>> get, Action<List<string>> set,
+        string? tip = null, bool advanced = false)
+    {
+        var editor = new AppListEditor(get, v => { set(v); Changed(false); });
+        return Row(path, title, description, editor, tip, advanced, wideControl: true);
     }
 
     public Button Button(string text, Action click, string style = "BaseButton")
