@@ -7,7 +7,7 @@
     <Grid x:Name="Root" Opacity="0">
         <!-- Fullscreen backdrop: theme background + soft accent glow -->
         <Grid x:Name="Backdrop">
-            <Border Background="{DynamicResource WindowBackgroundBrush}" />
+            <Border Background="{DynamicResource BreakBackgroundBrush}" />
             <Border>
                 <Border.Background>
                     <RadialGradientBrush Center="0.5,0.45" GradientOrigin="0.5,0.45" RadiusX="0.6" RadiusY="0.7">
@@ -24,7 +24,7 @@
             <StackPanel x:Name="Content" HorizontalAlignment="Center" MaxWidth="720">
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,0,0,18">
                     <Border Width="12" Height="12" CornerRadius="4" Background="{DynamicResource AccentGradientBrush}" VerticalAlignment="Center" />
-                    <TextBlock x:Name="RuleName" FontSize="16" FontWeight="SemiBold" Margin="8,0,0,0" Foreground="{DynamicResource Text2Brush}" />
+                    <TextBlock x:Name="RuleName" FontSize="16" FontWeight="SemiBold" Margin="8,0,0,0" Foreground="{DynamicResource BreakTextBrush}" Opacity="0.75" />
                 </StackPanel>
 
                 <!-- countdown: ring -->
@@ -33,17 +33,17 @@
                     <Path x:Name="RingArc" Stroke="{DynamicResource AccentGradientBrush}" StrokeThickness="12"
                           StrokeStartLineCap="Round" StrokeEndLineCap="Round" />
                     <TextBlock x:Name="RingText" FontFamily="{StaticResource DisplayFont}" FontSize="64" FontWeight="SemiBold"
-                               HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{DynamicResource Text1Brush}" />
+                               HorizontalAlignment="Center" VerticalAlignment="Center" Foreground="{DynamicResource BreakTextBrush}" />
                 </Grid>
 
                 <!-- countdown: big number -->
                 <TextBlock x:Name="BigText" FontFamily="{StaticResource DisplayFont}" FontSize="88" FontWeight="SemiBold"
-                           HorizontalAlignment="Center" Foreground="{DynamicResource Text1Brush}" />
+                           HorizontalAlignment="Center" Foreground="{DynamicResource BreakTextBrush}" />
 
                 <!-- countdown: bar -->
                 <StackPanel x:Name="BarHost" Width="420" HorizontalAlignment="Center">
                     <TextBlock x:Name="BarText" FontFamily="{StaticResource DisplayFont}" FontSize="52" FontWeight="SemiBold"
-                               HorizontalAlignment="Center" Foreground="{DynamicResource Text1Brush}" Margin="0,0,0,14" />
+                               HorizontalAlignment="Center" Foreground="{DynamicResource BreakTextBrush}" Margin="0,0,0,14" />
                     <Grid Height="10">
                         <Border CornerRadius="5" Background="{DynamicResource TrackBrush}" />
                         <Border x:Name="BarFill" CornerRadius="5" Background="{DynamicResource AccentGradientBrush}" HorizontalAlignment="Left" />
@@ -51,7 +51,7 @@
                 </StackPanel>
 
                 <TextBlock x:Name="MessageText" FontFamily="{StaticResource DisplayFont}" FontSize="30" FontWeight="SemiBold"
-                           TextAlignment="Center" TextWrapping="Wrap" Margin="0,28,0,0" Foreground="{DynamicResource Text1Brush}" />
+                           TextAlignment="Center" TextWrapping="Wrap" Margin="0,28,0,0" Foreground="{DynamicResource BreakTextBrush}" />
                 <TextBlock x:Name="MergedText" FontSize="13" TextAlignment="Center" Margin="0,8,0,0" Foreground="{DynamicResource Text3Brush}" />
 
                 <StackPanel x:Name="Buttons" Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,28,0,0">

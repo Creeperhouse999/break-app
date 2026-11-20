@@ -1,0 +1,366 @@
+using System.ComponentModel;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Input;
+using System.Windows.Interop;
+using System.Windows.Media;
+using System.Windows.Media.Animation;
+using BreakApp.Core.Models;
+using BreakApp.Core.Settings;
+using BreakApp.Services;
+using BreakApp.Theme;
+
+namespace BreakApp.SettingsUI;
+
+/// <summary>
+/// Settings: sidebar categories, search across every setting, Basic/Advanced switch, presets with a diff preview,
+/// live theme preview, Save / Cancel. Edits a copy; nothing applies until Save.
+/// </summary>
+public sealed class SettingsWindow : Window
+{
+    private readonly BreakCoordinator _c;
+    private readonly SettingsContext _ctx;
+    private readonly ListBox _nav = new() { BorderThickness = new Thickness(0), Background = Brushes.Transparent };
+    private readonly ScrollViewer _scroll = new() { VerticalScrollBarVisibility = ScrollBarVisibility.Auto, Padding = new Thickness(32, 8, 32, 8) };
+    private readonly TextBlock _pageTitle = PageBuilder.T("", "H1");
+    private readonly TextBox _search = new() { Width = 240 };
+    private readonly ListBox _results = new() { BorderThickness = new Thickness(0), Background = Brushes.Transparent, Visibility = Visibility.Collapsed };
+    private readonly TextBlock _status = new() { VerticalAlignment = VerticalAlignment.Center, FontSize = 12.5 };
+    private readonly CheckBox _advanced = new() { Content = "Advanced", VerticalAlignment = VerticalAlignment.Center };
+    private string _page = "Rules";
+    private string? _sub;
+    private bool _dirty, _saved;
+
+    public SettingsWindow(BreakCoordinator c, string? page)
+    {
+        _c = c;
+        _ctx = new SettingsContext(SettingsStore.Clone(c.Settings), c);
+        _ctx.Changed += () => SetDirty(true);
+        _ctx.AppearanceChanged += () => ThemeManager.Apply(_ctx.Edit.Appearance);
+        _ctx.Navigate = (p, sub) => Show(p, sub);
+        _ctx.Rebuild = () => Show(_page, _sub);
+
+        Title = "Break App · Settings";
+        Width = 1040;
+        Height = 740;
+        MinWidth = 820;
+        MinHeight = 520;
+        WindowStartupLocation = WindowStartupLocation.CenterScreen;
+        FontFamily = (FontFamily)Application.Current.FindResource("AppFont");
+        Icon = System.Windows.Media.Imaging.BitmapFrame.Create(new Uri("pack://application:,,,/Assets/icon.ico"));
+        SetResourceReference(BackgroundProperty, "WindowBackgroundBrush");
+        SetResourceReference(ForegroundProperty, "Text1Brush");
+        Content = BuildLayout();
+        SourceInitialized += (_, _) => ApplyTitleBar();
+        ThemeManager.Changed += ApplyTitleBar;
+        Closed += (_, _) => ThemeManager.Changed -= ApplyTitleBar;
+        PreviewKeyDown += (_, e) =>
+        {
+            if (e.Key == Key.F && Keyboard.Modifiers == ModifierKeys.Control) { _search.Focus(); e.Handled = true; }
+            if (e.Key == Key.S && Keyboard.Modifiers == ModifierKeys.Control) { Save(); e.Handled = true; }
+        };
+        Show(page ?? "Rules", null);
+    }
+
+    private void ApplyTitleBar()
+    {
+        var hwnd = new WindowInteropHelper(this).Handle;
+        if (hwnd != IntPtr.Zero) Native.SetDwmInt(hwnd, Native.DWMWA_USE_IMMERSIVE_DARK_MODE, ThemeManager.IsDark ? 1 : 0);
+    }
+
+    // ------------------------------------------------------------------ layout
+
+    private UIElement BuildLayout()
+    {
+        var root = new Grid();
+        root.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(230) });
+        root.ColumnDefinitions.Add(new ColumnDefinition());
+
+        // sidebar
+        var side = new DockPanel { Margin = new Thickness(0) };
+        var sideBg = new Border { Child = side, Padding = new Thickness(14, 18, 14, 14) };
+        sideBg.SetResourceReference(Border.BackgroundProperty, "SidebarBrush");
+        var brand = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(8, 0, 0, 18) };
+        brand.Children.Add(new Border { Width = 26, Height = 26, CornerRadius = new CornerRadius(8), Child = new TextBlock
+        {
+            Text = "", FontFamily = (FontFamily)Application.Current.FindResource("IconFont"), Foreground = Brushes.White, FontSize = 14,
+            HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center,
+        } }.WithRef(Border.BackgroundProperty, "AccentGradientBrush"));
+        brand.Children.Add(new TextBlock { Text = "Break App", FontSize = 16, FontWeight = FontWeights.SemiBold, Margin = new Thickness(10, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center }
+            .WithRef(TextBlock.ForegroundProperty, "Text1Brush"));
+        DockPanel.SetDock(brand, Dock.Top);
+        side.Children.Add(brand);
+
+        _nav.ItemContainerStyle = (Style)Application.Current.FindResource("NavItem");
+        foreach (var (name, icon) in SettingsPages.Categories)
+        {
+            var item = new StackPanel { Orientation = Orientation.Horizontal, Tag = name };
+            item.Children.Add(new TextBlock { Text = icon, FontFamily = (FontFamily)Application.Current.FindResource("IconFont"), FontSize = 15, Width = 22, VerticalAlignment = VerticalAlignment.Center });
+            item.Children.Add(new TextBlock { Text = name, FontSize = 13.5, Margin = new Thickness(8, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center });
+            _nav.Items.Add(item);
+        }
+        _nav.SelectionChanged += (_, _) =>
+        {
+            if (_nav.SelectedItem is StackPanel { Tag: string name } && name != _page) Show(name, null);
+        };
+        side.Children.Add(_nav);
+        root.Children.Add(sideBg);
+
+        // main column
+        var main = new DockPanel();
+        Grid.SetColumn(main, 1);
+
+        var header = new Grid { Margin = new Thickness(32, 20, 32, 6) };
+        header.ColumnDefinitions.Add(new ColumnDefinition());
+        header.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        header.Children.Add(_pageTitle);
+        var tools = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
+        var searchHost = new Grid();
+        searchHost.Children.Add(_search);
+        var placeholder = new TextBlock { Text = "  Search settings (Ctrl+F)", Margin = new Thickness(10, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center, IsHitTestVisible = false, FontSize = 12.5 };
+        placeholder.SetResourceReference(TextBlock.ForegroundProperty, "Text3Brush");
+        placeholder.FontFamily = new FontFamily("Segoe Fluent Icons, Segoe MDL2 Assets, Segoe UI");
+        searchHost.Children.Add(placeholder);
+        _search.TextChanged += (_, _) => { placeholder.Visibility = _search.Text.Length == 0 ? Visibility.Visible : Visibility.Collapsed; RunSearch(); };
+        tools.Children.Add(searchHost);
+        _advanced.SetResourceReference(StyleProperty, "Switch");
+        _advanced.Margin = new Thickness(16, 0, 0, 0);
+        _advanced.ToolTip = "Show every setting. Basic hides the rarely used ones.";
+        _advanced.IsChecked = _ctx.Edit.General.AdvancedMode;
+        _advanced.Click += (_, _) => { _ctx.Edit.General.AdvancedMode = _advanced.IsChecked == true; SetDirty(true); Show(_page, _sub); };
+        tools.Children.Add(_advanced);
+        var presets = new Button { Content = "Presets ▾", Margin = new Thickness(14, 0, 0, 0) };
+        presets.Click += (_, _) => ShowPresets(presets);
+        tools.Children.Add(presets);
+        Grid.SetColumn(tools, 1);
+        header.Children.Add(tools);
+        DockPanel.SetDock(header, Dock.Top);
+        main.Children.Add(header);
+
+        // footer
+        var footer = new Grid { Margin = new Thickness(32, 10, 32, 16) };
+        footer.ColumnDefinitions.Add(new ColumnDefinition());
+        footer.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        _status.SetResourceReference(TextBlock.ForegroundProperty, "Text3Brush");
+        footer.Children.Add(_status);
+        var buttons = new StackPanel { Orientation = Orientation.Horizontal };
+        var cancel = new Button { Content = "Close", Margin = new Thickness(0, 0, 8, 0), Height = 34, Padding = new Thickness(18, 0, 18, 0) };
+        cancel.Click += (_, _) => Close();
+        var save = new Button { Content = "Save", Height = 34, Padding = new Thickness(24, 0, 24, 0) };
+        save.SetResourceReference(StyleProperty, "PrimaryButton");
+        save.Click += (_, _) => Save();
+        buttons.Children.Add(cancel);
+        buttons.Children.Add(save);
+        Grid.SetColumn(buttons, 1);
+        footer.Children.Add(buttons);
+        var footerBorder = new Border { Child = footer, BorderThickness = new Thickness(0, 1, 0, 0) };
+        footerBorder.SetResourceReference(Border.BorderBrushProperty, "DividerBrush");
+        DockPanel.SetDock(footerBorder, Dock.Bottom);
+        main.Children.Add(footerBorder);
+
+        var content = new Grid();
+        content.Children.Add(_scroll);
+        _results.ItemContainerStyle = (Style)Application.Current.FindResource("NavItem");
+        _results.Margin = new Thickness(32, 8, 32, 8);
+        _results.SelectionChanged += (_, _) =>
+        {
+            if (_results.SelectedItem is FrameworkElement { Tag: RowInfo row }) GoTo(row);
+        };
+        content.Children.Add(_results);
+        main.Children.Add(content);
+
+        root.Children.Add(main);
+        SetDirty(false);
+        return root;
+    }
+
+    // ------------------------------------------------------------------ navigation & search
+
+    private void Show(string page, string? sub)
+    {
+        _page = page;
+        _sub = sub;
+        _ctx.Rows.Clear();
+        var panel = SettingsPages.Build(page, _ctx, sub);
+        _scroll.Content = panel;
+        _scroll.ScrollToTop();
+        var rule = sub is null ? null : _ctx.Edit.Rules.FirstOrDefault(r => r.Id.ToString() == sub);
+        _pageTitle.Text = rule is null ? page : $"Rule · {rule.Name}";
+        _advanced.IsChecked = _ctx.Edit.General.AdvancedMode;
+        foreach (StackPanel item in _nav.Items)
+            if ((string)item.Tag == page && !Equals(_nav.SelectedItem, item)) _nav.SelectedItem = item;
+        if (_search.Text.Length > 0) { _search.Text = ""; }
+    }
+
+    /// <summary>Builds every page off-screen to index all rows (rule rows are indexed via the first rule).</summary>
+    private List<RowInfo> IndexAll()
+    {
+        var ctx = new SettingsContext(_ctx.Edit, _c);
+        ctx.Edit.General.AdvancedMode = true;
+        var advanced = _ctx.Edit.General.AdvancedMode;
+        try
+        {
+            foreach (var (name, _) in SettingsPages.Categories)
+                if (name != "Stats") SettingsPages.Build(name, ctx, null);
+            if (_ctx.Edit.Rules.FirstOrDefault() is { } first) SettingsPages.Build("Rules", ctx, first.Id.ToString());
+        }
+        finally { _ctx.Edit.General.AdvancedMode = advanced; }
+        return ctx.Rows;
+    }
+
+    private void RunSearch()
+    {
+        var q = _search.Text.Trim();
+        if (q.Length == 0)
+        {
+            _results.Visibility = Visibility.Collapsed;
+            _scroll.Visibility = Visibility.Visible;
+            return;
+        }
+        var words = q.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        var hits = IndexAll()
+            .Where(r => words.All(w => $"{r.Category} {r.Group} {r.Title} {r.Description} {r.Tip}".Contains(w, StringComparison.OrdinalIgnoreCase)))
+            .DistinctBy(r => (r.Category, r.Group, r.Title))
+            .Take(40).ToList();
+        _results.Items.Clear();
+        foreach (var h in hits)
+        {
+            var sp = new StackPanel { Tag = h };
+            sp.Children.Add(new TextBlock { Text = h.Title, FontSize = 13.5, FontWeight = FontWeights.SemiBold });
+            sp.Children.Add(new TextBlock { Text = $"{h.Category} › {h.Group}{(string.IsNullOrEmpty(h.Description) ? "" : " · " + h.Description)}", FontSize = 12, TextTrimming = TextTrimming.CharacterEllipsis }
+                .WithRef(TextBlock.ForegroundProperty, "Text3Brush"));
+            _results.Items.Add(sp);
+        }
+        if (hits.Count == 0) _results.Items.Add(new TextBlock { Text = "Nothing found.", Margin = new Thickness(10) });
+        _results.Visibility = Visibility.Visible;
+        _scroll.Visibility = Visibility.Collapsed;
+    }
+
+    private void GoTo(RowInfo hit)
+    {
+        var wasAdvanced = _ctx.Edit.General.AdvancedMode;
+        _ctx.Edit.General.AdvancedMode = true; // make sure the row is visible
+        if (!wasAdvanced) SetDirty(true);
+        _search.Text = "";
+        Show(hit.Category, hit.SubPage);
+        var row = _ctx.Rows.FirstOrDefault(r => r.Group == hit.Group && r.Title == hit.Title);
+        if (row is null) return;
+        Dispatcher.BeginInvoke(() =>
+        {
+            row.Element.BringIntoView();
+            var flash = new SolidColorBrush(ThemeManager.Palette.A2) { Opacity = 0 };
+            if (row.Element is Panel p)
+            {
+                p.Background = flash;
+                flash.BeginAnimation(Brush.OpacityProperty, new DoubleAnimation(0, 0.25, TimeSpan.FromSeconds(0.35)) { AutoReverse = true, RepeatBehavior = new RepeatBehavior(2) });
+            }
+        }, System.Windows.Threading.DispatcherPriority.Loaded);
+    }
+
+    // ------------------------------------------------------------------ presets
+
+    private void ShowPresets(Button anchor)
+    {
+        var menu = new ContextMenu { PlacementTarget = anchor };
+        foreach (var p in Presets.All)
+        {
+            var item = new MenuItem { Header = new StackPanel { Children =
+            {
+                new TextBlock { Text = p.Name, FontWeight = FontWeights.SemiBold },
+                new TextBlock { Text = p.Description, FontSize = 11.5, MaxWidth = 340, TextWrapping = TextWrapping.Wrap, Opacity = 0.8 },
+            } } };
+            item.Click += (_, _) =>
+            {
+                var after = p.Apply(_ctx.Edit);
+                var diff = Presets.Diff(_ctx.Edit, after);
+                if (diff.Count == 0) { MessageBox.Show(this, "Your settings already match this preset.", p.Name); return; }
+                var text = $"Apply the {p.Name} preset? These will change:\n\n• " + string.Join("\n• ", diff) + "\n\n(Not saved until you press Save.)";
+                if (MessageBox.Show(this, text, "Apply preset", MessageBoxButton.OKCancel, MessageBoxImage.Question) != MessageBoxResult.OK) return;
+                _ctx.Edit = after;
+                SetDirty(true);
+                Show(_page, null);
+            };
+            menu.Items.Add(item);
+        }
+        menu.IsOpen = true;
+    }
+
+    // ------------------------------------------------------------------ save / close
+
+    private void SetDirty(bool dirty)
+    {
+        _dirty = dirty;
+        _status.Text = dirty ? "● Unsaved changes" : "All changes saved";
+        _status.SetResourceReference(TextBlock.ForegroundProperty, dirty ? "WarningBrush" : "Text3Brush");
+    }
+
+    private void Save()
+    {
+        var copy = SettingsStore.Clone(_ctx.Edit);
+        var message = _c.SaveSettings(copy);
+        _saved = true;
+        _ctx.Edit = SettingsStore.Clone(_c.Settings);
+        SetDirty(false);
+        if (message is not null)
+        {
+            MessageBox.Show(this, message, "Commitment mode", MessageBoxButton.OK, MessageBoxImage.Information);
+            ThemeManager.Apply(_c.Settings.Appearance);
+        }
+        Show(_page, _sub is not null && _ctx.Edit.Rules.Any(r => r.Id.ToString() == _sub) ? _sub : null);
+    }
+
+    protected override void OnClosing(CancelEventArgs e)
+    {
+        if (_dirty)
+        {
+            var r = MessageBox.Show(this, "Save your changes?", "Break App", MessageBoxButton.YesNoCancel, MessageBoxImage.Question);
+            if (r == MessageBoxResult.Cancel) { e.Cancel = true; return; }
+            if (r == MessageBoxResult.Yes) Save();
+        }
+        ThemeManager.Apply(_c.Settings.Appearance); // drop any unsaved live preview
+        base.OnClosing(e);
+    }
+
+    // ------------------------------------------------------------------ dialogs
+
+    /// <summary>Red confirmation with an "I understand" checkbox that must be ticked.</summary>
+    public static bool ConfirmDanger(string title, string text, string checkbox)
+    {
+        var w = new Window
+        {
+            Title = title, Width = 460, SizeToContent = SizeToContent.Height, ResizeMode = ResizeMode.NoResize,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner, Owner = Application.Current.Windows.OfType<SettingsWindow>().FirstOrDefault(),
+            FontFamily = (FontFamily)Application.Current.FindResource("AppFont"),
+        };
+        w.SetResourceReference(BackgroundProperty, "WindowBackgroundBrush");
+        var panel = new StackPanel { Margin = new Thickness(24) };
+        panel.Children.Add(new TextBlock { Text = "  " + title, FontSize = 18, FontWeight = FontWeights.SemiBold, FontFamily = new FontFamily("Segoe Fluent Icons, Segoe MDL2 Assets, Segoe UI Variable Display, Segoe UI") }
+            .WithRef(TextBlock.ForegroundProperty, "ErrorBrush"));
+        panel.Children.Add(new TextBlock { Text = text, TextWrapping = TextWrapping.Wrap, FontSize = 13.5, Margin = new Thickness(0, 12, 0, 16) }.WithRef(TextBlock.ForegroundProperty, "Text1Brush"));
+        var cb = new CheckBox { Content = checkbox, Margin = new Thickness(0, 0, 0, 18) };
+        panel.Children.Add(cb);
+        var buttons = new StackPanel { Orientation = Orientation.Horizontal, HorizontalAlignment = HorizontalAlignment.Right };
+        var cancel = new Button { Content = "Cancel", Margin = new Thickness(0, 0, 8, 0), IsCancel = true };
+        var ok = new Button { Content = "Enable", IsEnabled = false };
+        ok.SetResourceReference(StyleProperty, "DangerButton");
+        cb.Click += (_, _) => ok.IsEnabled = cb.IsChecked == true;
+        ok.Click += (_, _) => w.DialogResult = true;
+        buttons.Children.Add(cancel);
+        buttons.Children.Add(ok);
+        panel.Children.Add(buttons);
+        w.Content = panel;
+        return w.ShowDialog() == true;
+    }
+
+    /// <summary>Headless check: build every page with advanced rows and list settings that have no UI.</summary>
+    public static IReadOnlyList<string> CoverageCheck(BreakCoordinator c)
+    {
+        var edit = SettingsStore.Clone(c.Settings);
+        if (edit.Rules.Count == 0) edit.Rules.Add(RuleTemplates.Stretch());
+        edit.General.AdvancedMode = true;
+        var ctx = new SettingsContext(edit, c);
+        foreach (var (name, _) in SettingsPages.Categories) SettingsPages.Build(name, ctx, null);
+        SettingsPages.Build("Rules", ctx, edit.Rules[0].Id.ToString());
+        return SettingsPaths.Missing(ctx.Paths);
+    }
+}

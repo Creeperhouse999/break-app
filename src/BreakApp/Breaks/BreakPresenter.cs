@@ -25,7 +25,18 @@ public sealed class BreakPresenter(BreakCoordinator c)
 
     private static string NotificationId(BreakRule r) => "break-" + r.Id;
 
-    public void Present(BreakRule rule, IReadOnlyList<BreakRule> merged, string message, Action<BreakOutcome> done)
+    public void Present(BreakRule rule, IReadOnlyList<BreakRule> merged, string message, Action<BreakOutcome> done) =>
+        PresentCore(rule, merged, message, done, c.Settings, preview: false);
+
+    /// <summary>Show a break using unsaved settings. Never locks input, always skippable, not recorded.</summary>
+    public void Preview(BreakRule rule, AppSettings settings)
+    {
+        if (IsRunning) return;
+        var message = rule.Messages.FirstOrDefault() ?? settings.Texts.DefaultMessage;
+        PresentCore(rule, [], message, _ => { }, settings, preview: true);
+    }
+
+    private void PresentCore(BreakRule rule, IReadOnlyList<BreakRule> merged, string message, Action<BreakOutcome> done, AppSettings s, bool preview)
     {
         if (IsRunning) Finish(BreakOutcome.Skipped);
         Current = rule;
@@ -34,15 +45,21 @@ public sealed class BreakPresenter(BreakCoordinator c)
         _end = c.Clock.Now + rule.Duration;
         c.Sound.Play(rule.StartSound);
 
-        var postponeLabel = c.Scheduler.CanPostpone(rule.Id) ? $"Postpone {Format.Duration(rule.PostponeLength)}" : null;
-        var canSkip = rule.AllowSkip && rule.Lock == LockLevel.Skippable;
+        var t = s.Texts;
+        var postponeLabel = !preview && c.Scheduler.CanPostpone(rule.Id)
+            ? Templates.Render(t.PostponeButton, new Dictionary<string, string> { ["time"] = Format.Duration(rule.PostponeLength) })
+            : null;
+        var canSkip = preview || (rule.AllowSkip && rule.Lock == LockLevel.Skippable);
+        var mergedText = merged.Count > 0
+            ? Templates.Render(t.AlsoCovers, new Dictionary<string, string> { ["rules"] = string.Join(", ", merged.Select(m => m.Name)) })
+            : null;
 
         if (rule.Style == BreakStyle.Notification)
         {
             var actions = new List<NotificationAction>();
-            if (canSkip) actions.Add(new("skip", "Skip"));
+            if (canSkip) actions.Add(new("skip", t.SkipButton));
             if (postponeLabel is not null && rule.Lock == LockLevel.Skippable) actions.Add(new("postpone", postponeLabel));
-            var body = merged.Count > 0 ? $"{message}\nAlso covers: {string.Join(", ", merged.Select(m => m.Name))}" : message;
+            var body = mergedText is null ? message : $"{message}\n{mergedText}";
             c.Notifications.Show(new NotificationRequest(NotificationId(rule), NotificationKind.Warning, rule.Name, body, actions,
                 TimeSpan.Zero, Remaining: () => _end - c.Clock.Now, Total: rule.Duration,
                 Flash: rule.Flash.Enabled ? rule.Flash : null, Closable: canSkip),
@@ -54,14 +71,14 @@ public sealed class BreakPresenter(BreakCoordinator c)
                         case "postpone": Finish(BreakOutcome.Postponed); break;
                         case "skip" or "closed": Finish(BreakOutcome.Skipped); break;
                     }
-                });
+                }, s.Appearance);
         }
         else
         {
-            ShowWindows(rule, merged, message, canSkip, rule.Lock == LockLevel.Skippable ? postponeLabel : null);
-            if (rule.Lock != LockLevel.Skippable)
+            ShowWindows(rule, mergedText, message, canSkip ? t.SkipBreakButton : null, rule.Lock == LockLevel.Skippable ? postponeLabel : null, s);
+            if (!preview && rule.Lock != LockLevel.Skippable)
             {
-                var escape = rule.Lock == LockLevel.LockedWithKeybind ? c.Settings.Lock.EscapeHotkey : null;
+                var escape = rule.Lock == LockLevel.LockedWithKeybind ? s.Lock.EscapeHotkey : null;
                 var realMax = TimeSpan.FromTicks((long)(rule.Duration.Ticks / c.TimeScale)) + TimeSpan.FromSeconds(5);
                 _lock = InputLock.Engage(escape, () => Finish(BreakOutcome.EndedByKeybind), realMax);
             }
@@ -74,34 +91,32 @@ public sealed class BreakPresenter(BreakCoordinator c)
         OnTick();
     }
 
-    private void ShowWindows(BreakRule rule, IReadOnlyList<BreakRule> merged, string message, bool canSkip, string? postponeLabel)
+    private void ShowWindows(BreakRule rule, string? mergedText, string message, string? skipLabel, string? postponeLabel, AppSettings s)
     {
-        var a = c.Settings.Appearance;
-        var theme = ThemeManager.OverrideFor(a, rule.Appearance);
+        var a = s.Appearance;
+        var t = s.Texts;
+        var theme = ThemeManager.OverrideFor(a, rule.Appearance) ?? ThemeManager.CreateDictionary(ThemeManager.ResolveDark(a.Theme), ThemeManager.PaletteFor(a), a);
         var hint = rule.Lock switch
         {
-            LockLevel.LockedWithKeybind => $"Input is locked. Press {c.Settings.Lock.EscapeHotkey} to end early.",
-            LockLevel.Total => "Locked until the timer ends.",
-            _ => canSkip ? "Press Esc to skip." : "",
+            LockLevel.LockedWithKeybind => Templates.Render(t.HintLocked, new Dictionary<string, string> { ["hotkey"] = s.Lock.EscapeHotkey }),
+            LockLevel.Total => t.HintTotal,
+            _ => skipLabel is not null ? t.HintSkip : "",
         };
 
         if (rule.Style == BreakStyle.Window)
-        {
-            var w = new BreakWindow(rule, merged, message, false, default, a, theme, canSkip, postponeLabel, hint);
-            Hook(w);
-        }
+            Hook(new BreakWindow(rule, mergedText, message, false, default, a, theme, skipLabel, postponeLabel, hint));
         else
         {
             // Screens are enumerated at show time so unplugged/added monitors are always handled.
             var screens = a.Monitors switch
             {
-                MonitorMode.Primary => Screen.AllScreens.Where(s => s.Primary).ToList(),
-                MonitorMode.Specific => Screen.AllScreens.Where(s => a.SpecificMonitors.Contains(s.DeviceName)).ToList(),
+                MonitorMode.Primary => Screen.AllScreens.Where(x => x.Primary).ToList(),
+                MonitorMode.Specific => Screen.AllScreens.Where(x => a.SpecificMonitors.Contains(x.DeviceName)).ToList(),
                 _ => Screen.AllScreens.ToList(),
             };
             if (screens.Count == 0) screens = [Screen.PrimaryScreen ?? Screen.AllScreens[0]];
-            foreach (var s in screens)
-                Hook(new BreakWindow(rule, merged, message, true, s.Bounds, a, theme, canSkip, postponeLabel, hint));
+            foreach (var scr in screens)
+                Hook(new BreakWindow(rule, mergedText, message, true, scr.Bounds, a, theme, skipLabel, postponeLabel, hint));
         }
         foreach (var w in _windows) w.Show();
         _windows.FirstOrDefault()?.Activate();

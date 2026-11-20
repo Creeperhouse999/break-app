@@ -1,6 +1,7 @@
 using System.Windows;
 using System.Windows.Media;
 using BreakApp.Core.Models;
+using BreakApp.Core.Settings;
 using Microsoft.Win32;
 
 namespace BreakApp.Theme;
@@ -54,9 +55,9 @@ public static class ThemeManager
     public static void Apply(AppearanceSettings a)
     {
         IsDark = ResolveDark(a.Theme);
-        Palette = PaletteFor(a.Accent);
         FontScale = a.FontScale;
-        var dict = CreateDictionary(IsDark, a.Accent);
+        Palette = PaletteFor(a);
+        var dict = CreateDictionary(IsDark, Palette, a);
         var merged = Application.Current.Resources.MergedDictionaries;
         if (_current is not null) merged.Remove(_current);
         merged.Add(dict);
@@ -68,7 +69,8 @@ public static class ThemeManager
     public static ResourceDictionary? OverrideFor(AppearanceSettings global, AppearanceOverride? o)
     {
         if (o is null || (o.Accent is null && o.Theme is null)) return null;
-        return CreateDictionary(ResolveDark(o.Theme ?? global.Theme), o.Accent ?? global.Accent);
+        var palette = o.Accent is { } acc ? PaletteFor(acc) : PaletteFor(global);
+        return CreateDictionary(ResolveDark(o.Theme ?? global.Theme), palette, global);
     }
 
     private static SolidColorBrush B(Color c) { var b = new SolidColorBrush(c); b.Freeze(); return b; }
@@ -81,9 +83,14 @@ public static class ThemeManager
         return g;
     }
 
-    public static ResourceDictionary CreateDictionary(bool dark, Accent accent)
+    /// <summary>Custom hex accent wins over the preset accent.</summary>
+    public static AccentPalette PaletteFor(AppearanceSettings a) => a.CustomAccent is { } hex ? FromHex(hex) : PaletteFor(a.Accent);
+
+    private static AccentPalette FromHex(string hex) => new(Hex(hex), Hex(ColorHex.Lighten(hex, 0.15)), Hex(ColorHex.Lighten(hex, 0.35)),
+        Hex(ColorHex.Darken(hex, 0.2)), Hex(ColorHex.Lighten(hex, 0.45)));
+
+    public static ResourceDictionary CreateDictionary(bool dark, AccentPalette p, AppearanceSettings? a = null)
     {
-        var p = PaletteFor(accent);
         var d = new ResourceDictionary
         {
             ["Accent1Color"] = p.A1,
@@ -149,6 +156,11 @@ public static class ThemeManager
             d["ErrorBrush"] = B("#F87171"); d["ErrorBackgroundBrush"] = B("#2EEF4444");
             d["BreakOverlayColor"] = Hex("#0B1838");
         }
+
+        // user colour overrides
+        d["BreakBackgroundBrush"] = a?.BreakBackgroundColor is { } bb ? B(bb) : d["WindowBackgroundBrush"];
+        d["BreakTextBrush"] = a?.BreakTextColor is { } bt ? B(bt) : d["Text1Brush"];
+        if (a?.NotificationBackgroundColor is { } nb) d["CardBackgroundBrush"] = B(WithAlpha(Hex(nb), 0.98));
         return d;
     }
 }

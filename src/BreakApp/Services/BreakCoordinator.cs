@@ -41,6 +41,9 @@ public sealed class BreakCoordinator : IDisposable
     public PauseState Pause { get; private set; } = PauseState.None;
     public ActivitySnapshot LastActivity { get; private set; } = new(TimeSpan.Zero);
     public BreakRule? RunningRule => _running?.Rule;
+    /// <summary>Last app (other than this one) that was the active window; used by "add exception".</summary>
+    public string? LastForegroundApp { get; private set; }
+    private static readonly string OwnProcess = System.Diagnostics.Process.GetCurrentProcess().ProcessName;
 
     /// <summary>Raised after every tick and every state change (tray tooltip, diagnostics).</summary>
     public event Action? StateChanged;
@@ -76,8 +79,9 @@ public sealed class BreakCoordinator : IDisposable
     {
         var now = Clock.Now;
         var activity = Signals.Activity(Settings.Idle);
+        if (SignalHub.ForegroundProcessName() is { } fg && fg != OwnProcess) LastForegroundApp = fg;
         LastActivity = new ActivitySnapshot(TimeSpan.FromTicks((long)(activity.IdleFor.Ticks * TimeScale)));
-        Pause = PauseEvaluator.Evaluate(Settings.Pause, Signals.Pause(Settings.Pause, now), now);
+        Pause = PauseEvaluator.Evaluate(Settings.Pause, Signals.Pause(Settings.Pause, now), now, Settings.General.Use24HourClock);
 
         if (_running is not null && Presenter.IsRunning && PauseEvaluator.ShouldEndRunningBreak(_running.Rule, Pause))
             Presenter.End(BreakOutcome.InterruptedByMeeting);
@@ -130,7 +134,7 @@ public sealed class BreakCoordinator : IDisposable
 
     public string NextMessage(BreakRule r)
     {
-        if (r.Messages.Count == 0) return "Time for a break.";
+        if (r.Messages.Count == 0) return Settings.Texts.DefaultMessage;
         int i;
         if (r.MessageOrder == MessageOrder.Sequential)
         {
@@ -149,16 +153,25 @@ public sealed class BreakCoordinator : IDisposable
         if (r.Warning.PlaySound) Sound.Play(Settings.Sound.WarningSound);
         if (!r.Warning.ShowNotification) return;
 
+        var t = Settings.Texts;
         var actions = new List<NotificationAction>();
-        if (r.Warning.ShowStartNowButton) actions.Add(new("now", "Start now", Primary: true));
-        if (r.Warning.ShowPostponeButton && r.AllowPostpone) actions.Add(new("postpone", $"Postpone {Format.Duration(r.PostponeLength)}"));
-        if (r.Warning.ShowSkipNextButton && r.AllowSkip) actions.Add(new("skip", "Skip"));
+        if (r.Warning.ShowStartNowButton) actions.Add(new("now", t.StartNowButton, Primary: true));
+        if (r.Warning.ShowPostponeButton && r.AllowPostpone)
+            actions.Add(new("postpone", Templates.Render(t.PostponeButton, new Dictionary<string, string> { ["time"] = Format.Duration(r.PostponeLength) })));
+        if (r.Warning.ShowSkipNextButton && r.AllowSkip) actions.Add(new("skip", t.SkipButton));
 
+        var values = new Dictionary<string, string>
+        {
+            ["rule"] = r.Name,
+            ["time"] = Format.Duration(w.TimeLeft),
+            ["duration"] = Format.Duration(r.Duration),
+            ["style"] = r.Style switch { BreakStyle.Fullscreen => t.StyleFullscreen, BreakStyle.Window => t.StyleWindow, _ => t.StyleNotification },
+        };
         var real = TimeSpan.FromTicks((long)(w.TimeLeft.Ticks / TimeScale));
         var shown = real < TimeSpan.FromSeconds(5) ? TimeSpan.FromSeconds(5) : real > TimeSpan.FromSeconds(30) ? TimeSpan.FromSeconds(30) : real;
         Notifications.Show(new NotificationRequest(
-            WarningId(r), NotificationKind.Info, $"{r.Name} in {Format.Duration(w.TimeLeft)}",
-            $"{Format.Duration(r.Duration)} break · {Describe(r.Style)}", actions, shown,
+            WarningId(r), NotificationKind.Info, Templates.Render(t.WarningTitle, values),
+            Templates.Render(t.WarningBody, values), actions, shown,
             Flash: r.Flash.Enabled ? r.Flash : null),
             id =>
             {
@@ -175,13 +188,6 @@ public sealed class BreakCoordinator : IDisposable
                 StateChanged?.Invoke();
             });
     }
-
-    private static string Describe(BreakStyle s) => s switch
-    {
-        BreakStyle.Fullscreen => "fullscreen",
-        BreakStyle.Window => "window",
-        _ => "notification",
-    };
 
     public void Info(string title, string body, NotificationKind kind = NotificationKind.Info) =>
         Notifications.Show(new NotificationRequest("info-" + Guid.NewGuid(), kind, title, body, [], TimeSpan.FromSeconds(6)));

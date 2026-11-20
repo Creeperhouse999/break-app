@@ -5,12 +5,12 @@ namespace BreakApp.Notifications;
 /// <summary>Shows notification cards one at a time; a request with the current card's id updates it in place, others queue.</summary>
 public sealed class NotificationManager(Func<AppearanceSettings> appearance)
 {
-    private readonly LinkedList<(NotificationRequest Request, Action<string>? Callback)> _queue = new();
+    private readonly LinkedList<(NotificationRequest Request, Action<string>? Callback, AppearanceSettings? Appearance)> _queue = new();
     private NotificationWindow? _current;
 
     public bool IsShowing(string id) => _current?.Id == id || _queue.Any(q => q.Request.Id == id);
 
-    public void Show(NotificationRequest r, Action<string>? callback = null)
+    public void Show(NotificationRequest r, Action<string>? callback = null, AppearanceSettings? appearanceOverride = null)
     {
         if (_current is not null && _current.Id == r.Id)
         {
@@ -19,7 +19,7 @@ public sealed class NotificationManager(Func<AppearanceSettings> appearance)
         }
         var queued = _queue.FirstOrDefault(q => q.Request.Id == r.Id);
         if (queued.Request is not null) _queue.Remove(queued);
-        _queue.AddLast((r, callback));
+        _queue.AddLast((r, callback, appearanceOverride));
         Pump();
     }
 
@@ -33,9 +33,9 @@ public sealed class NotificationManager(Func<AppearanceSettings> appearance)
     private void Pump()
     {
         if (_current is not null || _queue.Count == 0) return;
-        var (req, cb) = _queue.First!.Value;
+        var (req, cb, look) = _queue.First!.Value;
         _queue.RemoveFirst();
-        var w = new NotificationWindow(req, cb, appearance());
+        var w = new NotificationWindow(req, cb, look ?? appearance());
         w.Finished += done =>
         {
             if (_current == done) _current = null;

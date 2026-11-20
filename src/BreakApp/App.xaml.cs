@@ -69,6 +69,16 @@ public partial class App : Application
     /// <summary>Command-line demos used for manual verification.</summary>
     private bool HandleDemoArgs(string[] args)
     {
+        if (args.Contains("--check-settings"))
+        {
+            // Headless: builds every settings page (no window) and lists settings that have no UI control.
+            var missing = SettingsUI.SettingsWindow.CoverageCheck(Coordinator);
+            var report = missing.Count == 0 ? "settings coverage: OK (every setting has a control)" : "settings coverage: MISSING " + string.Join(", ", missing);
+            Log(report);
+            File.WriteAllText(Path.Combine(SettingsStore.AppDataDir, "coverage.txt"), report);
+            Shutdown();
+            return true;
+        }
         if (args.Contains("--demo-notification"))
         {
             var r = Coordinator.Settings.Rules.FirstOrDefault() ?? Core.Settings.RuleTemplates.Stretch();
@@ -110,13 +120,55 @@ public partial class App : Application
         return false;
     }
 
+    private GlobalHotkeys? _hotkeys;
+    private SettingsUI.SettingsWindow? _settingsWindow;
+    private string _hotkeyState = "";
+
     private void OnSettingsApplied(Core.Models.AppSettings s)
     {
+        // Only a real, installed-or-portable run touches autostart (dev builds under bin\ too; that's fine: it points at this exe).
+        Autostart.Set(s.General.StartWithWindows);
+
+        var state = s.General.PauseHotkey + "|" + s.General.BreakNowHotkey;
+        if (state == _hotkeyState) return;
+        _hotkeyState = state;
+        _hotkeys ??= new GlobalHotkeys();
+        _hotkeys.Clear();
+        var failed = new List<string>();
+        if (!_hotkeys.Register(s.General.PauseHotkey, TogglePause)) failed.Add(s.General.PauseHotkey);
+        if (!_hotkeys.Register(s.General.BreakNowHotkey, BreakNow)) failed.Add(s.General.BreakNowHotkey);
+        if (failed.Count > 0)
+            Coordinator.Info("Shortcut not available", $"{string.Join(", ", failed)} is used by another app. Pick another one in Settings › General.",
+                Notifications.NotificationKind.Warning);
+    }
+
+    private void TogglePause()
+    {
+        var c = Coordinator;
+        if (c.Signals.Manual.IsPaused(c.Clock.Now))
+        {
+            c.Resume();
+            c.Info("Breaks resumed", "", Notifications.NotificationKind.Success);
+        }
+        else if (c.PauseFor(null) is { } why) c.Info("Can't pause", why);
+        else c.Info("Breaks paused", "Press the shortcut again to resume.");
+    }
+
+    private void BreakNow()
+    {
+        if (Coordinator.Settings.Rules.FirstOrDefault(r => r.Enabled) is { } r) Coordinator.TakeNow(r.Id);
     }
 
     public void ShowSettings(string? page)
     {
-        Log("settings requested: " + page);
+        if (_settingsWindow is null)
+        {
+            _settingsWindow = new SettingsUI.SettingsWindow(Coordinator, page);
+            _settingsWindow.Closed += (_, _) => _settingsWindow = null;
+            _settingsWindow.Show();
+        }
+        if (_settingsWindow.WindowState == WindowState.Minimized) _settingsWindow.WindowState = WindowState.Normal;
+        _settingsWindow.Activate();
     }
 
     private Signals.DiagnosticsWindow? _diagnostics;
@@ -134,6 +186,7 @@ public partial class App : Application
 
     public void Quit()
     {
+        _hotkeys?.Dispose();
         _tray?.Dispose();
         Coordinator?.Dispose();
         InputLock.ReleaseAll();

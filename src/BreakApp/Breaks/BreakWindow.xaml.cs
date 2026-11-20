@@ -24,25 +24,28 @@ public partial class BreakWindow : Window
     public event Action? SkipClicked;
     public event Action? PostponeClicked;
 
-    public BreakWindow(BreakRule rule, IReadOnlyList<BreakRule> merged, string message, bool fullscreen,
+    /// <param name="skipLabel">null = no skip button (and Esc does nothing).</param>
+    /// <param name="postponeLabel">null = no postpone button.</param>
+    public BreakWindow(BreakRule rule, string? mergedText, string message, bool fullscreen,
         System.Drawing.Rectangle bounds, AppearanceSettings a, ResourceDictionary? themeOverride,
-        bool canSkip, string? postponeLabel, string hint)
+        string? skipLabel, string? postponeLabel, string hint)
     {
         InitializeComponent();
         if (themeOverride is not null) Resources.MergedDictionaries.Add(themeOverride);
         _fullscreen = fullscreen;
         _bounds = bounds;
         _format = a.Countdown;
-        _canSkip = canSkip;
+        var canSkip = _canSkip = skipLabel is not null;
         FontSize = 13 * a.FontScale;
 
         RuleName.Text = rule.Name;
         MessageText.Text = message;
-        MergedText.Text = merged.Count > 0 ? "Also covers: " + string.Join(", ", merged.Select(m => m.Name)) : "";
-        MergedText.Visibility = merged.Count > 0 ? Visibility.Visible : Visibility.Collapsed;
+        MergedText.Text = mergedText ?? "";
+        MergedText.Visibility = string.IsNullOrEmpty(mergedText) ? Visibility.Collapsed : Visibility.Visible;
         HintText.Text = hint;
         HintText.Visibility = string.IsNullOrEmpty(hint) ? Visibility.Collapsed : Visibility.Visible;
 
+        SkipButton.Content = skipLabel;
         SkipButton.Visibility = canSkip ? Visibility.Visible : Visibility.Collapsed;
         PostponeButton.Visibility = postponeLabel is null ? Visibility.Collapsed : Visibility.Visible;
         PostponeButton.Content = postponeLabel;
