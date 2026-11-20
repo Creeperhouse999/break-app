@@ -1,6 +1,7 @@
 <Solution>
   <Folder Name="/src/">
     <Project Path="src/BreakApp.Core/BreakApp.Core.csproj" />
+    <Project Path="src/BreakApp/BreakApp.csproj" />
   </Folder>
   <Folder Name="/tests/">
     <Project Path="tests/BreakApp.Core.Tests/BreakApp.Core.Tests.csproj" />

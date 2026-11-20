@@ -12,12 +12,13 @@ public sealed record HistoryEntry(DateTime Time, Guid RuleId, string RuleName, B
 public sealed class HistoryLog(string path)
 {
     private readonly object _lock = new();
+    private static readonly JsonSerializerOptions Compact = new(SettingsStore.Json) { WriteIndented = false };
 
     public static string DefaultPath => Path.Combine(SettingsStore.AppDataDir, "history.jsonl");
 
     public void Append(HistoryEntry e)
     {
-        var line = JsonSerializer.Serialize(e, SettingsStore.Json).ReplaceLineEndings(" ");
+        var line = JsonSerializer.Serialize(e, Compact);
         lock (_lock)
         {
             var dir = Path.GetDirectoryName(path);
