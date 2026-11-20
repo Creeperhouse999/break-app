@@ -81,9 +81,13 @@ public sealed class BreakCoordinator : IDisposable
         var activity = Signals.Activity(Settings.Idle);
         if (SignalHub.ForegroundProcessName() is { } fg && fg != OwnProcess) LastForegroundApp = fg;
         LastActivity = new ActivitySnapshot(TimeSpan.FromTicks((long)(activity.IdleFor.Ticks * TimeScale)));
-        Pause = PauseEvaluator.Evaluate(Settings.Pause, Signals.Pause(Settings.Pause, now), now, Settings.General.Use24HourClock);
+        var signals = Signals.Pause(Settings.Pause, now);
+        // Our own fullscreen break looks like a "fullscreen app" to Windows (and can switch on Do Not Disturb):
+        // never let it pause/end itself.
+        if (Presenter.IsRunning) signals = signals with { DoNotDisturb = false, FullscreenApp = false };
+        Pause = PauseEvaluator.Evaluate(Settings.Pause, signals, now, Settings.General.Use24HourClock);
 
-        if (_running is not null && Presenter.IsRunning && PauseEvaluator.ShouldEndRunningBreak(_running.Rule, Pause))
+        if (_running is not null && Presenter.IsRunning && PauseEvaluator.ShouldEndRunningBreak(_running.Rule, _pausedAtStart, Pause))
             Presenter.End(BreakOutcome.InterruptedByMeeting);
 
         if (Guard.DuePending() is { } pending) ApplySettings(pending);
@@ -98,20 +102,39 @@ public sealed class BreakCoordinator : IDisposable
             }
         }
 
-        if (!Presenter.IsRunning && _queue.Count > 0) StartNext();
+        StartNext();
+        // Safety net: anything the scheduler thinks is "in a break" but nobody shows or queues gets released.
+        var showing = _queue.Select(q => q.Rule.Id).ToList();
+        if (_running is not null) showing.Add(_running.Rule.Id);
+        Scheduler.ReleaseOrphans(showing);
         StateChanged?.Invoke();
     }
 
     // ------------------------------------------------------------------ breaks
 
+    private bool _pausedAtStart;
+
     private void StartNext()
     {
+        if (Presenter.IsRunning || _queue.Count == 0) return;
+        // Scheduled breaks queued during a pause (e.g. sequential breaks) wait until the pause ends; manual ones go now.
+        if (Pause.IsPaused && !_queue.Peek().Manual) return;
         var d = _queue.Dequeue();
         _running = d;
         _breakStart = Clock.Now;
+        _pausedAtStart = Pause.IsPaused;
         Scheduler.BreakStarted(d.Rule.Id);
         Notifications.Close(WarningId(d.Rule));
-        Presenter.Present(d.Rule, d.Merged, NextMessage(d.Rule), outcome => Finished(d, outcome));
+        try
+        {
+            Presenter.Present(d.Rule, d.Merged, NextMessage(d.Rule), outcome => Finished(d, outcome));
+        }
+        catch (Exception e)
+        {
+            App.Log("presenting a break failed: " + e);
+            Presenter.Abort();
+            Finished(d, BreakOutcome.Skipped);
+        }
         StateChanged?.Invoke();
     }
 
@@ -123,7 +146,7 @@ public sealed class BreakCoordinator : IDisposable
         Log(d.Rule, outcome, Clock.Now - _breakStart);
         foreach (var m in d.Merged) Log(m, BreakOutcome.MergedIntoBigger, TimeSpan.Zero);
         StateChanged?.Invoke();
-        if (_queue.Count > 0) System.Windows.Application.Current.Dispatcher.BeginInvoke(StartNext, DispatcherPriority.Background);
+        if (_queue.Count > 0) System.Windows.Application.Current.Dispatcher.BeginInvoke(StartNext, DispatcherPriority.Background); // guarded: no double start
     }
 
     private void Log(BreakRule r, BreakOutcome outcome, TimeSpan actual)
@@ -241,15 +264,19 @@ public sealed class BreakCoordinator : IDisposable
     public string? SaveSettings(AppSettings edited)
     {
         SettingsValidator.Normalize(edited);
+        var hadPending = Guard.PendingAppliesAt is not null;
         var weakening = Guard.WeakeningChanges(Settings, edited);
         if (weakening.Count > 0)
         {
-            Guard.Schedule(edited);
-            return $"Commitment mode: these changes apply at {Guard.PendingAppliesAt:HH:mm}:\n• " + string.Join("\n• ", weakening);
+            // Everything harmless applies now; committed rules and commitment settings wait for the cooldown in force NOW.
+            Guard.Schedule(edited, Settings.Commitment.Cooldown);
+            ApplySettings(CommitmentGuard.ApplyNowPart(Settings, edited));
+            return $"Commitment mode: your other changes are saved. These apply at {Guard.PendingAppliesAt:HH:mm}:\n• " + string.Join("\n• ", weakening)
+                   + (hadPending ? "\n\n(This replaces the earlier pending change.)" : "");
         }
         Guard.CancelPending();
         ApplySettings(edited);
-        return null;
+        return hadPending ? "Your earlier pending commitment change was discarded because you saved new settings that keep the commitment." : null;
     }
 
     private void ApplySettings(AppSettings s)

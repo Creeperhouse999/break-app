@@ -23,6 +23,24 @@ public sealed class NotificationManager(Func<AppearanceSettings> appearance)
         Pump();
     }
 
+    /// <summary>
+    /// Show right away, ahead of everything (break cards): the current card is hidden and goes back to the front of the
+    /// queue, so a running break's countdown is never spent waiting behind another notification.
+    /// </summary>
+    public void ShowNow(NotificationRequest r, Action<string>? callback = null, AppearanceSettings? appearanceOverride = null)
+    {
+        if (_current is not null && _current.Id == r.Id) { _current.Update(r, callback); return; }
+        foreach (var q in _queue.Where(q => q.Request.Id == r.Id).ToList()) _queue.Remove(q);
+        _queue.AddFirst((r, callback, appearanceOverride));
+        if (_current is { } cur)
+        {
+            if (cur.Request.Duration > TimeSpan.Zero || cur.Request.Remaining is not null) // re-show it afterwards
+                _queue.AddAfter(_queue.First!, (cur.Request, cur.Callback, null));
+            cur.Dismiss("hidden");
+        }
+        else Pump();
+    }
+
     /// <summary>Close without reporting a result (e.g. the warning when its break starts).</summary>
     public void Close(string id)
     {

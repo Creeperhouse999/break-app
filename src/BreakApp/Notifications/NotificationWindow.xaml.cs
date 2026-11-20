@@ -32,6 +32,8 @@ public partial class NotificationWindow : Window
     private bool _hover, _closing, _reported;
 
     public string Id => _request.Id;
+    public NotificationRequest Request => _request;
+    public Action<string>? Callback => _callback;
     public event Action<NotificationWindow>? Finished;
 
     public NotificationWindow(NotificationRequest request, Action<string>? callback, AppearanceSettings appearance)

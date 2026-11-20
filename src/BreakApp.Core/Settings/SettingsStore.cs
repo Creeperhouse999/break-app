@@ -30,14 +30,15 @@ public static class SettingsStore
                     ?? throw new JsonException("empty settings");
             return SettingsValidator.Normalize(s);
         }
-        catch (Exception e) when (e is JsonException or NotSupportedException or ArgumentException or FormatException or InvalidOperationException)
+        catch (Exception e) when (e is not (OutOfMemoryException or StackOverflowException or AccessViolationException))
         {
+            // Any unreadable, locked or broken file: start with defaults instead of failing to start.
             try
             {
                 var dir = System.IO.Path.GetDirectoryName(path) ?? ".";
                 File.Copy(path, System.IO.Path.Combine(dir, "settings.bad.json"), overwrite: true);
             }
-            catch (IOException) { /* best effort */ }
+            catch (Exception ex) when (ex is IOException or UnauthorizedAccessException) { /* best effort */ }
             return AppSettings.CreateDefault();
         }
     }

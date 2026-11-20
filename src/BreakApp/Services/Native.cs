@@ -97,6 +97,12 @@ internal static partial class Native
     [LibraryImport("user32.dll", EntryPoint = "GetMessageW")]
     public static partial int GetMessage(out MSG lpMsg, IntPtr hWnd, uint wMsgFilterMin, uint wMsgFilterMax);
 
+    public const uint PM_NOREMOVE = 0x0000;
+
+    [LibraryImport("user32.dll", EntryPoint = "PeekMessageW")]
+    [return: MarshalAs(UnmanagedType.Bool)]
+    public static partial bool PeekMessage(out MSG lpMsg, IntPtr hWnd, uint wMsgFilterMin, uint wMsgFilterMax, uint wRemoveMsg);
+
     [LibraryImport("user32.dll", EntryPoint = "PostThreadMessageW")]
     [return: MarshalAs(UnmanagedType.Bool)]
     public static partial bool PostThreadMessage(uint idThread, uint msg, IntPtr wParam, IntPtr lParam);

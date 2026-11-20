@@ -61,7 +61,7 @@ public sealed class DurationBox : StackPanel
 public sealed class ColorPicker : StackPanel
 {
     private readonly Border _swatch = new() { Width = 26, Height = 26, CornerRadius = new CornerRadius(7), BorderThickness = new Thickness(1) };
-    private readonly TextBox _hex = new() { Width = 92, Margin = new Thickness(8, 0, 0, 0) };
+    private readonly TextBox _hex = new() { Width = 92, Height = 30, MinHeight = 30, Padding = new Thickness(8, 0, 8, 0), Margin = new Thickness(8, 0, 0, 0) };
     private string? _value;
 
     public event Action<string?>? ValueChanged;

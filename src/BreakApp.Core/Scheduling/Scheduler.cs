@@ -32,6 +32,15 @@ public sealed class Scheduler
     {
         var now = _clock.Now;
         var old = new Dictionary<Guid, RuleState>(_state);
+        var kept = s.Rules.Select(r => r.Id).ToHashSet();
+        // A removed rule that was mid-break releases the rules merged into it, so nothing stays stuck "in a break".
+        foreach (var (id, st) in old.Where(kv => !kept.Contains(kv.Key) && kv.Value.Phase != RulePhase.Counting))
+            foreach (var m in st.MergedIds)
+                if (old.TryGetValue(m, out var ms) && s.Rules.FirstOrDefault(r => r.Id == m) is { } mr)
+                {
+                    ms.Phase = RulePhase.Counting;
+                    Reset(mr, ms, now);
+                }
         _state.Clear();
         foreach (var r in s.Rules)
         {
@@ -65,7 +74,7 @@ public sealed class Scheduler
             st.TakeNowFlag = false;
             st.Phase = RulePhase.Pending;
             st.MergedIds = [];
-            events.Add(new BreakDueEvent(takeNow, []));
+            events.Add(new BreakDueEvent(takeNow, [], Manual: true));
             return events;
         }
 
@@ -242,6 +251,28 @@ public sealed class Scheduler
         if (_settings.Collision == CollisionPolicy.ResetAll && outcome != BreakOutcome.Postponed)
             foreach (var other in _settings.Rules)
                 if (_state.TryGetValue(other.Id, out var os) && os.Phase == RulePhase.Counting) Reset(other, os, now);
+    }
+
+    /// <summary>
+    /// Safety net: any rule marked as pending or running that the shell is not showing or queueing
+    /// (<paramref name="showing"/> = primary rules running or queued) is reset, so breaks can never stop for good.
+    /// </summary>
+    public void ReleaseOrphans(IEnumerable<Guid> showing)
+    {
+        var keep = new HashSet<Guid>();
+        foreach (var id in showing)
+        {
+            keep.Add(id);
+            if (_state.TryGetValue(id, out var st)) keep.UnionWith(st.MergedIds);
+        }
+        var now = _clock.Now;
+        foreach (var r in _settings.Rules)
+        {
+            if (!_state.TryGetValue(r.Id, out var st) || st.Phase == RulePhase.Counting || keep.Contains(r.Id)) continue;
+            st.Phase = RulePhase.Counting;
+            st.MergedIds = [];
+            Reset(r, st, now);
+        }
     }
 
     public (BreakRule Rule, TimeSpan In)? NextBreak()

@@ -43,6 +43,19 @@ public partial class App : Application
             while (_showEvent.WaitOne()) Dispatcher.BeginInvoke(() => ShowSettings(null));
         }) { IsBackground = true, Name = "show-listener" }.Start();
 
+        try { StartApp(e.Args); }
+        catch (Exception ex) when (ex is not OutOfMemoryException)
+        {
+            // Never leave an invisible process holding the single-instance lock.
+            InputLock.ReleaseAll();
+            Log("STARTUP FAILED: " + ex);
+            MessageBox.Show($"Break App could not start:\n\n{ex.Message}\n\nDetails: {LogPath}", "Break App", MessageBoxButton.OK, MessageBoxImage.Error);
+            Shutdown(1);
+        }
+    }
+
+    private void StartApp(string[] args)
+    {
         var settings = SettingsStore.Load(SettingsStore.DefaultPath);
         if (!File.Exists(SettingsStore.DefaultPath))
         {
@@ -55,7 +68,7 @@ public partial class App : Application
         Coordinator = new BreakCoordinator(settings, SettingsStore.DefaultPath, clock, fast ? 60 : 1, HistoryLog.DefaultPath);
         Coordinator.SettingsApplied += OnSettingsApplied;
 
-        if (HandleDemoArgs(e.Args)) return;
+        if (HandleDemoArgs(args)) return;
 
         _tray = new TrayService(Coordinator);
         _tray.OpenSettingsRequested += ShowSettings;

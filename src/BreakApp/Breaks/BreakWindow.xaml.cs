@@ -66,7 +66,7 @@ public partial class BreakWindow : Window
             if (!string.IsNullOrWhiteSpace(image) && File.Exists(image))
             {
                 try { BgImage.Source = new BitmapImage(new Uri(image, UriKind.Absolute)); }
-                catch (Exception e) when (e is IOException or NotSupportedException or UriFormatException) { App.Log("background image failed: " + e.Message); }
+                catch (Exception e) when (e is not OutOfMemoryException) { App.Log("background image failed: " + e.Message); }
             }
         }
         else

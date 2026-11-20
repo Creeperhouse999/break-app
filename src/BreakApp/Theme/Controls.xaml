@@ -99,30 +99,14 @@
                             <Border x:Name="Track" CornerRadius="11" Background="{DynamicResource TrackBrush}"
                                     BorderBrush="{DynamicResource ButtonBorderBrush}" BorderThickness="1" />
                             <Border x:Name="Fill" CornerRadius="11" Background="{DynamicResource AccentGradientBrush}" Opacity="0" />
-                            <Ellipse x:Name="Thumb" Width="16" Height="16" Margin="3,0" HorizontalAlignment="Left" Fill="{DynamicResource Text3Brush}">
-                                <Ellipse.RenderTransform><TranslateTransform x:Name="ThumbX" X="0" /></Ellipse.RenderTransform>
-                            </Ellipse>
+                            <Ellipse x:Name="Thumb" Width="16" Height="16" Margin="3,0" HorizontalAlignment="Left" Fill="{DynamicResource Text3Brush}" />
                         </Grid>
                         <ContentPresenter Margin="10,0,0,0" VerticalAlignment="Center" />
                     </StackPanel>
                     <ControlTemplate.Triggers>
                         <Trigger Property="IsChecked" Value="True">
-                            <Trigger.EnterActions>
-                                <BeginStoryboard>
-                                    <Storyboard>
-                                        <DoubleAnimation Storyboard.TargetName="ThumbX" Storyboard.TargetProperty="X" To="18" Duration="0:0:0.15" />
-                                        <DoubleAnimation Storyboard.TargetName="Fill" Storyboard.TargetProperty="Opacity" To="1" Duration="0:0:0.15" />
-                                    </Storyboard>
-                                </BeginStoryboard>
-                            </Trigger.EnterActions>
-                            <Trigger.ExitActions>
-                                <BeginStoryboard>
-                                    <Storyboard>
-                                        <DoubleAnimation Storyboard.TargetName="ThumbX" Storyboard.TargetProperty="X" To="0" Duration="0:0:0.15" />
-                                        <DoubleAnimation Storyboard.TargetName="Fill" Storyboard.TargetProperty="Opacity" To="0" Duration="0:0:0.15" />
-                                    </Storyboard>
-                                </BeginStoryboard>
-                            </Trigger.ExitActions>
+                            <Setter TargetName="Thumb" Property="HorizontalAlignment" Value="Right" />
+                            <Setter TargetName="Fill" Property="Opacity" Value="1" />
                             <Setter TargetName="Thumb" Property="Fill" Value="White" />
                         </Trigger>
                         <Trigger Property="IsEnabled" Value="False">

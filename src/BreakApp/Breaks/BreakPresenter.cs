@@ -33,7 +33,8 @@ public sealed class BreakPresenter(BreakCoordinator c)
     {
         if (IsRunning) return;
         var message = rule.Messages.FirstOrDefault() ?? settings.Texts.DefaultMessage;
-        PresentCore(rule, [], message, _ => { }, settings, preview: true);
+        try { PresentCore(rule, [], message, _ => { }, settings, preview: true); }
+        catch (Exception e) { App.Log("preview failed: " + e); Abort(); }
     }
 
     private void PresentCore(BreakRule rule, IReadOnlyList<BreakRule> merged, string message, Action<BreakOutcome> done, AppSettings s, bool preview)
@@ -60,7 +61,7 @@ public sealed class BreakPresenter(BreakCoordinator c)
             if (canSkip) actions.Add(new("skip", t.SkipButton));
             if (postponeLabel is not null && rule.Lock == LockLevel.Skippable) actions.Add(new("postpone", postponeLabel));
             var body = mergedText is null ? message : $"{message}\n{mergedText}";
-            c.Notifications.Show(new NotificationRequest(NotificationId(rule), NotificationKind.Warning, rule.Name, body, actions,
+            c.Notifications.ShowNow(new NotificationRequest(NotificationId(rule), NotificationKind.Warning, rule.Name, body, actions,
                 TimeSpan.Zero, Remaining: () => _end - c.Clock.Now, Total: rule.Duration,
                 Flash: rule.Flash.Enabled ? rule.Flash : null, Closable: canSkip),
                 id =>
@@ -139,6 +140,21 @@ public sealed class BreakPresenter(BreakCoordinator c)
     }
 
     public void End(BreakOutcome outcome) => Finish(outcome);
+
+    /// <summary>Tear everything down without reporting a result (used when showing the break failed).</summary>
+    public void Abort()
+    {
+        var rule = Current;
+        _done = null;
+        Current = null;
+        _timer?.Stop();
+        _timer = null;
+        _lock?.Release();
+        _lock = null;
+        foreach (var w in _windows) { try { w.Close(); } catch (InvalidOperationException) { } }
+        _windows.Clear();
+        if (rule is not null) c.Notifications.Close(NotificationId(rule));
+    }
 
     private void Finish(BreakOutcome outcome)
     {

@@ -589,7 +589,16 @@ public static class SettingsPages
                 if (dlg.ShowDialog() != true) return;
                 try
                 {
-                    ctx.Edit = SettingsStore.Import(dlg.FileName);
+                    var imported = SettingsStore.Import(dlg.FileName);
+                    var newTotal = imported.Rules.Where(r => r.Lock == LockLevel.Total && r.Enabled).Select(r => r.Name)
+                        .Where(n => !ctx.Edit.Rules.Any(o => o.Name == n && o.Lock == LockLevel.Total)).ToList();
+                    var newCommit = imported.Commitment.Enabled && !ctx.Edit.Commitment.Enabled;
+                    if ((newTotal.Count > 0 || newCommit) && !SettingsWindow.ConfirmDanger("Import strict settings?",
+                            "This file turns on:\n"
+                            + (newTotal.Count > 0 ? $"• TOTAL LOCK for: {string.Join(", ", newTotal)} (no way to end those breaks early)\n" : "")
+                            + (newCommit ? "• Commitment mode (no skipping, pausing or quitting shortly before strict breaks)\n" : ""),
+                            "I understand")) return;
+                    ctx.Edit = imported;
                     ctx.MarkAppearance();
                     ctx.Rebuild();
                 }

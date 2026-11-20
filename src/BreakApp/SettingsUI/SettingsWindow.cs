@@ -117,9 +117,11 @@ public sealed class SettingsWindow : Window
         var tools = new StackPanel { Orientation = Orientation.Horizontal, VerticalAlignment = VerticalAlignment.Center };
         var searchHost = new Grid();
         searchHost.Children.Add(_search);
-        var placeholder = new TextBlock { Text = "  Search settings (Ctrl+F)", Margin = new Thickness(10, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center, IsHitTestVisible = false, FontSize = 12.5 };
-        placeholder.SetResourceReference(TextBlock.ForegroundProperty, "Text3Brush");
-        placeholder.FontFamily = new FontFamily("Segoe Fluent Icons, Segoe MDL2 Assets, Segoe UI");
+        var placeholder = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(10, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center, IsHitTestVisible = false };
+        placeholder.Children.Add(new TextBlock { Text = "", FontFamily = (FontFamily)Application.Current.FindResource("IconFont"), FontSize = 12, VerticalAlignment = VerticalAlignment.Center }
+            .WithRef(TextBlock.ForegroundProperty, "Text3Brush"));
+        placeholder.Children.Add(new TextBlock { Text = "Search settings (Ctrl+F)", FontSize = 12.5, Margin = new Thickness(8, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center }
+            .WithRef(TextBlock.ForegroundProperty, "Text3Brush"));
         searchHost.Children.Add(placeholder);
         _search.TextChanged += (_, _) => { placeholder.Visibility = _search.Text.Length == 0 ? Visibility.Visible : Visibility.Collapsed; RunSearch(); };
         tools.Children.Add(searchHost);

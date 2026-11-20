@@ -16,7 +16,8 @@ public abstract record SchedulerEvent;
 public sealed record WarningEvent(BreakRule Rule, TimeSpan TimeLeft) : SchedulerEvent;
 
 /// <summary>Start a break for <paramref name="Rule"/>. <paramref name="Merged"/> are smaller rules it covers (bigger-wins collision).</summary>
-public sealed record BreakDueEvent(BreakRule Rule, IReadOnlyList<BreakRule> Merged) : SchedulerEvent;
+/// <paramref name="Manual"/> = started by the user ("take a break now"), so pauses don't hold it back.
+public sealed record BreakDueEvent(BreakRule Rule, IReadOnlyList<BreakRule> Merged, bool Manual = false) : SchedulerEvent;
 
 /// <summary>A rule's cycle ended without a break being shown (skipped, satisfied by idle, merged...).</summary>
 public sealed record RuleSatisfiedEvent(BreakRule Rule, BreakOutcome Reason) : SchedulerEvent;

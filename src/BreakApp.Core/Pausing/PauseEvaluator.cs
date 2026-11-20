@@ -50,4 +50,8 @@ public static class PauseEvaluator
     /// <summary>Spec §7: a pause (meeting, quiet time, manual) ends a running break unless it is a TOTAL LOCK or the rule opts out.</summary>
     public static bool ShouldEndRunningBreak(BreakRule rule, PauseState state) =>
         state.IsPaused && rule.Lock != LockLevel.Total && rule.EndOnMeeting;
+
+    /// <summary>Only a pause that STARTS during the break ends it; a break started while already paused (e.g. "take a break now") keeps running.</summary>
+    public static bool ShouldEndRunningBreak(BreakRule rule, bool pausedAtStart, PauseState state) =>
+        !pausedAtStart && ShouldEndRunningBreak(rule, state);
 }

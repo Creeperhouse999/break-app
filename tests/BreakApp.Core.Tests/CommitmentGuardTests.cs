@@ -125,7 +125,7 @@ public class CommitmentGuardTests : SchedulerTestBase
         var g = Guard;
         var pending = AppSettings.CreateDefault();
         pending.Commitment.Cooldown = TimeSpan.FromMinutes(10);
-        g.Schedule(pending);
+        g.Schedule(pending, pending.Commitment.Cooldown);
         Assert.Equal(Clock.Now.AddMinutes(10), g.PendingAppliesAt);
         Clock.Advance(TimeSpan.FromMinutes(9));
         Assert.Null(g.DuePending());
