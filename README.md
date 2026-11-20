@@ -1,51 +1,107 @@
+<div align="center">
+
+<img src="docs/icon.png" width="80" alt="Break App icon" />
+
 # Break App
 
-A lightweight Windows tray app that reminds you to take breaks — on your schedule, in the style you want.
-Inspired by [Stretchly](https://hovancik.net/stretchly/), but native (C# / WPF), lighter, with a real input lock and a lot more customization.
+**Break reminders for Windows that you can bend to your will.**
+Rest your eyes, stretch, walk — on your schedule, in the style you like, as gentle or as strict as you want.
+
+![Windows 10/11](https://img.shields.io/badge/Windows-10%20%7C%2011-0078D4?logo=windows&logoColor=white)
+![.NET 10](https://img.shields.io/badge/.NET-10-512BD4?logo=dotnet&logoColor=white)
+![WPF](https://img.shields.io/badge/UI-WPF-2563EB)
+![License: MIT](https://img.shields.io/badge/license-MIT-16A34A)
+
+<img src="docs/screenshots/break-fullscreen.png" width="820" alt="Fullscreen break with a ring countdown" />
+
+</div>
+
+---
+
+## Why
+
+Break reminders are either too easy to ignore or too annoying to keep. Break App lets you decide exactly how each break behaves: a quiet card in the corner that pulses until you notice it, or a fullscreen break that really locks your keyboard until the timer runs out — and everything in between.
+
+It's a small native tray app (C# / WPF, ~0.5 MB exe), inspired by [Stretchly](https://hovancik.net/stretchly/).
 
 ## Features
 
-- **Unlimited break rules** — "every X, break for Y". Each rule has its own style, warning, lock level, sounds, messages and schedule.
-- **Timer modes per rule** — *active time* (only while you use the PC), *clock time*, or *fixed clock times* (:00, :20, :40…).
-- **Break styles**
-  - **Notification** — a card in the corner (same look as HiSync's notifications) with a live countdown. It can **glow**, **pulse** (grow and shrink) or both, so you notice it.
-  - **Window** — a centered card with a countdown.
-  - **Fullscreen** — covers every (or chosen) monitor; ring, bar or big-number countdown.
-- **Lock levels** — Skippable · Locked (keyboard + mouse blocked, Alt+Tab and Win key too; your escape combo ends it) · **TOTAL LOCK** (no way out; asks "ARE YOU SURE?" first).
-- **Warnings** — a notification and/or sound before each break, with Start now / Postpone / Skip buttons (each can be turned off).
-- **Smart pausing** — pauses during calls (mic or camera in use: Google Meet, Zoom, Teams, Discord…), quiet times (e.g. lessons), apps you list as exceptions, Do Not Disturb (optional), or manually from the tray. Games do **not** pause breaks unless you add them as an exception.
-- **Natural breaks** — time away from the PC counts as a break. Gamepad input and watching video count as activity.
-- **Overlapping rules** — bigger break wins (default), run both, or reset all timers.
-- **Commitment mode** (optional) — blocks skipping/pausing/quitting shortly before strict breaks; weakening strict rules waits for a cooldown.
-- **Customize almost everything** — every text the app shows (with `{rule}`, `{time}`… placeholders), theme, accent presets or any custom colour, break-screen colours, opacity, background image, text size, notification corner, sounds, shortcuts, 12/24-hour clock.
-- **Stats** — taken / skipped / postponed / natural breaks per day and per rule, streaks, CSV export.
-- **Presets** — Gentle · Balanced · Eye care · Strict (shows exactly what will change before applying).
+|  |  |
+|---|---|
+| ⏱️ **Unlimited break rules** | "Every X, break for Y." Each rule has its own style, warning, lock, sounds, messages and active hours. |
+| 🕒 **Three timer modes** | *Active time* (only while you use the PC) · *clock time* · *fixed clock times* (:00, :20, :40…). |
+| 🔔 **Notifications that get noticed** | A card in the corner with a live countdown that can **glow**, **pulse** (grow and shrink) or both. |
+| 🖥️ **Window or fullscreen breaks** | Ring, bar or big-number countdown, on every monitor or just the ones you pick. |
+| 🔒 **Real input lock** | *Locked*: keyboard and mouse blocked — Alt+Tab and the Win key too — until your escape combo. *TOTAL LOCK*: no way out until the timer ends (asks "are you sure?" first). |
+| ⚠️ **Warnings** | A heads-up before each break with **Start now / Postpone / Skip** (each optional). |
+| ⏸️ **Smart pausing** | Quiet times (lessons, gaming nights), apps you never want interrupted, Do Not Disturb, manual pause — and optional call detection. |
+| 🚶 **Natural breaks** | Time away from the PC counts as a break. Gamepad input and watching videos count as activity. |
+| 🤝 **Overlapping rules** | Bigger break wins, run both, or reset all timers. |
+| 🧱 **Commitment mode** *(optional)* | No skipping, pausing or quitting shortly before strict breaks; making them weaker waits for a cooldown. |
+| 🎨 **Customize almost everything** | Every text the app shows (with `{rule}`, `{time}`… placeholders), themes, any accent colour, break-screen colours, opacity, background image, text size, sounds, shortcuts, 12/24 h clock. |
+| 📊 **Stats** | Breaks taken / skipped / postponed / natural per day and per rule, streaks, CSV export. |
+| 🧭 **Setup guide** | A short first-run guide: preset, look, break times, pausing. Reopen it from the tray any time. |
 
-## Settings
+## Screenshots
 
-Tray icon → **Settings…** (or double-click / left-click the icon). Categories:
+<table>
+<tr>
+<td width="50%"><img src="docs/screenshots/notification-break.png" alt="Notification break with countdown" /><br/><sub>Notification break: live countdown, glow/pulse to get your attention</sub></td>
+<td width="50%"><img src="docs/screenshots/notification-warning.png" alt="Warning before a break" /><br/><sub>Warning before a break</sub></td>
+</tr>
+<tr>
+<td><img src="docs/screenshots/settings-rules.png" alt="Rules settings" /><br/><sub>Rules — as many as you like</sub></td>
+<td><img src="docs/screenshots/settings-rule-editor.png" alt="Rule editor" /><br/><sub>Every rule is fully configurable</sub></td>
+</tr>
+<tr>
+<td><img src="docs/screenshots/settings-appearance.png" alt="Appearance settings" /><br/><sub>Themes and colours</sub></td>
+<td><img src="docs/screenshots/settings-texts.png" alt="Texts settings" /><br/><sub>Change any text the app shows</sub></td>
+</tr>
+<tr>
+<td><img src="docs/screenshots/setup-guide.png" alt="Setup guide" /><br/><sub>First-run setup guide</sub></td>
+<td><img src="docs/screenshots/settings-light.png" alt="Light theme" /><br/><sub>Light theme</sub></td>
+</tr>
+</table>
 
-Rules · Warnings · Lock & Commitment · Pausing & Meetings · Activity & Idle · Appearance · Texts · Sounds · Stats · General
+## Install
 
-Every setting has a one-line description and an ⓘ tip. **Search** (Ctrl+F) finds any setting; **Advanced** shows the rarely used ones. Changes apply when you press **Save** (Ctrl+S); appearance changes preview live.
+1. Install the [.NET 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0) (x64) if you don't have it.
+2. Download `BreakApp.exe` from the [latest release](../../releases/latest) and put it anywhere (e.g. `Documents\BreakApp`).
+3. Run it. The **setup guide** opens on first launch; after that, Break App lives in the tray next to the clock.
 
-## About the input lock
+Your settings and history are stored in `%AppData%\BreakApp\`. To uninstall, quit from the tray, turn off *Start with Windows* first (or delete the `BreakApp` value under `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`), and delete the exe and that folder.
 
-The lock is *best effort* and needs no admin rights. These always get you out, by Windows design:
+## Using it
 
-- **Ctrl+Alt+Del** → Task Manager (no app can block it)
-- admin windows that were already open, and UAC prompts
+- **Left-click / double-click** the tray icon → Settings. **Right-click** → take a break now, skip next, pause (15 min … until resumed), stats, setup guide, quit.
+- The tray icon's ring shrinks as the next break gets closer; hover it for the exact time.
+- **Settings** has 10 categories — Rules · Warnings · Lock & Commitment · Pausing & Meetings · Activity & Idle · Appearance · Texts · Sounds · Stats · General. Every setting has a short description and an ⓘ tip; **Ctrl+F** searches all of them; **Advanced** shows the rarely used ones; **Presets** (Gentle · Balanced · Eye care · Strict) show exactly what will change before applying.
+- Default shortcuts: **Ctrl+Alt+P** pause/resume, **Ctrl+Alt+B** take a break now, **Ctrl+Shift+Alt+B** end a *Locked* break early. All changeable.
 
-## Build & run
+## FAQ
 
-Requirements: Windows 10/11, [.NET 10 SDK](https://dotnet.microsoft.com/download) to build, .NET 10 Desktop Runtime to run.
+**I play games with friends on voice chat — will breaks keep pausing?**
+Only if you turn on *Pause while the mic or camera is in use*. It's **off by default** for exactly this reason: Discord and in-game voice chat use the mic too. Turn it on if you mostly need it for work calls (Google Meet, Zoom, Teams).
+
+**Do games pause my breaks?**
+No — breaks still appear over games. If you want a specific game (or any app) to never be interrupted, add its process name under *Pausing & Meetings → Pause while these apps are in front*.
+
+**Can I always get out of a locked break?**
+The lock is best effort and needs no admin rights. These always work, by Windows design: **Ctrl+Alt+Del** → Task Manager, admin windows that were already open, and UAC prompts. *Locked* breaks also end with your escape combo; *TOTAL LOCK* doesn't.
+
+**Why does it want the .NET runtime?**
+That keeps the exe tiny. Build with `-SelfContained` (below) if you prefer one bigger file with no runtime needed.
+
+## Build from source
+
+Requirements: Windows 10/11 and the [.NET 10 SDK](https://dotnet.microsoft.com/download/dotnet/10.0).
 
 ```powershell
-scripts\build.ps1                 # runs the tests, publishes dist\BreakApp.exe
-scripts\build.ps1 -SelfContained  # bigger exe that doesn't need the runtime installed
+git clone <this repo>
+cd break-app
+scripts\build.ps1                 # runs the tests, publishes dist\BreakApp.exe (needs the .NET runtime)
+scripts\build.ps1 -SelfContained  # one bigger exe that runs without the runtime
 ```
-
-Data lives in `%AppData%\BreakApp\` (`settings.json`, `history.jsonl`, `app.log`).
 
 ### Testing switches
 
@@ -53,18 +109,22 @@ Data lives in `%AppData%\BreakApp\` (`settings.json`, `history.jsonl`, `app.log`
 |---|---|
 | `BREAKAPP_FAST=1` (env) | Time runs 60× faster: a 20 min rule fires after 20 s. |
 | `BREAKAPP_NO_AUTOSTART=1` (env) | Don't touch the Windows startup list. |
-| `--demo-notification` | Show a sample warning card, then exit. |
-| `--demo-break-notification` | Show a sample notification break with countdown + pulse. |
-| `--demo-break window\|fullscreen\|locked\|total [seconds]` | Show a sample break (locked/total really lock input!). |
-| `--check-settings` | Headless check that every setting has a control (`%AppData%\BreakApp\coverage.txt`). |
+| `--demo-notification` / `--demo-break-notification` | Show a sample card, then exit. |
+| `--demo-break window\|fullscreen\|locked\|total [seconds]` | Show a sample break. ⚠️ `locked`/`total` really lock input. |
+| `--check-settings` | Headless check that every setting has a control in the UI. |
+| `--render-screenshots <dir>` | Render the README screenshots off-screen (default settings, nothing shown). |
 
-Tray → **Diagnostics…** (Advanced mode) shows live idle time, gamepad/video/meeting/DND detection and every rule's timer.
+Tray → **Diagnostics…** (Advanced mode) shows live idle time, gamepad / video / meeting / Do Not Disturb detection and every rule's timer.
 
-## Project layout
+### Project layout
 
 ```
-src/BreakApp.Core     all logic: models, settings, scheduler, pausing, commitment, history (no UI, fully unit-tested)
-src/BreakApp          WPF shell: tray, notifications, break windows, input lock, OS signals, settings window
-tests/                xUnit tests for Core
-docs/superpowers/     design spec and implementation plan
+src/BreakApp.Core   all decisions: settings, scheduler, pausing, commitment, history (no UI, 147 unit tests)
+src/BreakApp        WPF shell: tray, notifications, break windows, input lock, OS signals, settings, setup guide
+tests/              xUnit tests for Core
+docs/               design spec, implementation plan, screenshots
 ```
+
+## License
+
+[MIT](LICENSE)

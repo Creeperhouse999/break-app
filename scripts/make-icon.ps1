@@ -55,3 +55,7 @@ for ($i = 0; $i -lt $sizes.Count; $i++) {
 foreach ($img in $images) { $bw.Write($img) }
 $bw.Close()
 Write-Output "wrote $out ($((Get-Item $out).Length) bytes)"
+
+# PNG copy for the README
+[System.IO.File]::WriteAllBytes((Join-Path $PSScriptRoot '..\docs\icon.png'), (New-IconPng 256))
+Write-Output "wrote docs\icon.png"
