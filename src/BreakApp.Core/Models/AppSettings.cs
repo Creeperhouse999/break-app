@@ -58,8 +58,8 @@ public sealed class IdleSettings
 public sealed class PauseSettings
 {
     public bool DetectMicCamera { get; set; } = true;
-    public List<string> MeetingProcesses { get; set; } = ["zoom", "teams", "ms-teams"];
-    public List<string> MeetingTitlePatterns { get; set; } = ["Meet -", "Zoom Meeting"];
+    public List<string> MeetingProcesses { get; set; } = [];
+    public List<string> MeetingTitlePatterns { get; set; } = ["Meet - ", "Zoom Meeting"];
     public List<TimeWindow> QuietTimes { get; set; } = [];
     public bool PauseDuringFullscreen { get; set; }
     public bool RespectDoNotDisturb { get; set; }

@@ -4,14 +4,30 @@ using BreakApp.Core.Scheduling;
 
 namespace BreakApp.Signals;
 
-/// <summary>Task 8 stub: replaced by real detectors in Task 11.</summary>
+/// <summary>Collects every OS signal the scheduler needs. Cheap checks run each tick; expensive ones are cached inside the detectors.</summary>
 public sealed class SignalHub : IDisposable
 {
+    private readonly ActivityMonitor _activity = new();
+    private readonly MeetingDetector _meetings = new();
+    private readonly NotificationStateDetector _notifState = new();
+
     public ManualPause Manual { get; } = new();
-    public ActivitySnapshot Activity(IdleSettings s) => new(BreakApp.Services.Native.IdleTime());
-    public PauseSignals Pause(PauseSettings s, DateTime now) =>
-        new(false, null, false, false, Manual.Until, Manual.Indefinite);
-    public void Dispose() { }
+
+    /// <summary>Latest raw values, for the diagnostics window.</summary>
+    public string Describe() =>
+        $"{_activity.Describe()}\n{_meetings.Describe()}\n{_notifState.Describe()}";
+
+    public ActivitySnapshot Activity(IdleSettings s) => _activity.Snapshot(s);
+
+    public PauseSignals Pause(PauseSettings s, DateTime now)
+    {
+        var (meeting, source) = _meetings.Check(s);
+        bool dnd = false, fullscreen = false;
+        if (s.RespectDoNotDisturb || s.PauseDuringFullscreen) (dnd, fullscreen) = _notifState.Check();
+        return new PauseSignals(meeting, source, dnd, fullscreen, Manual.Until, Manual.Indefinite);
+    }
+
+    public void Dispose() => _activity.Dispose();
 }
 
 public sealed class ManualPause

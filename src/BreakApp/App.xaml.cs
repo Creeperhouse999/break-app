@@ -119,8 +119,17 @@ public partial class App : Application
         Log("settings requested: " + page);
     }
 
+    private Signals.DiagnosticsWindow? _diagnostics;
+
     private void ShowDiagnostics()
     {
+        if (_diagnostics is null)
+        {
+            _diagnostics = new Signals.DiagnosticsWindow(Coordinator);
+            _diagnostics.Closed += (_, _) => _diagnostics = null;
+            _diagnostics.Show();
+        }
+        _diagnostics.Activate();
     }
 
     public void Quit()
