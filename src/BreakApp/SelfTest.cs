@@ -284,7 +284,7 @@ internal static class SelfTest
             foreach (var t in new[] { typeof(ContextMenu), typeof(MenuItem), typeof(Separator) })
                 Check(Application.Current.TryFindResource(t) is Style, $"no themed style for {t.Name} (would look like plain Windows)");
             var rule = w.TestContext.Edit.Rules.First();
-            w.TestNavigate("Rules", rule.Id.ToString());
+            w.TestNavigate("Breaks", rule.Id.ToString());
             await Task.Delay(30);
             cramped.AddRange(Cramped("Rule editor", w.TestPanel));
             Check(cramped.Count == 0, "cramped layout: " + string.Join("; ", cramped));

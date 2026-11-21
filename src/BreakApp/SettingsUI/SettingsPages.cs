@@ -15,26 +15,123 @@ namespace BreakApp.SettingsUI;
 /// <summary>Builds every settings page. Each row registers its setting path for search and the coverage check.</summary>
 public static class SettingsPages
 {
+    // Organized by what people want to do (docs/UX-GUIDELINES.md). Old 10-category layout: tag keep/settings-layout-2026-11-21.
     public static readonly (string Name, string Icon)[] Categories =
     [
-        ("Rules", "\uE916"), ("Warnings", "\uEA8F"), ("Lock & Commitment", "\uE72E"), ("Pausing & Meetings", "\uE769"),
-        ("Activity & Idle", "\uE945"), ("Appearance", "\uE790"), ("Texts", "\uE8D2"), ("Sounds", "\uE767"),
-        ("Stats", "\uE9D2"), ("General", "\uE713"),
+        ("Home", "\uE80F"), ("Breaks", "\uE916"), ("When to pause", "\uE769"), ("Look & sound", "\uE790"),
+        ("Texts", "\uE8D2"), ("Strict mode", "\uE72E"), ("Stats", "\uE9D2"), ("General", "\uE713"),
     ];
 
     public static StackPanel Build(string category, SettingsContext ctx, string? sub) => category switch
     {
-        "Rules" => sub is not null && ctx.Edit.Rules.FirstOrDefault(r => r.Id.ToString() == sub) is { } rule ? RuleEditor(ctx, rule) : Rules(ctx),
-        "Warnings" => Warnings(ctx),
-        "Lock & Commitment" => Lock(ctx),
-        "Pausing & Meetings" => Pausing(ctx),
-        "Activity & Idle" => Activity(ctx),
-        "Appearance" => Appearance(ctx),
+        "Home" => Home(ctx),
+        "Breaks" => sub is not null && ctx.Edit.Rules.FirstOrDefault(r => r.Id.ToString() == sub) is { } rule ? RuleEditor(ctx, rule) : Rules(ctx),
+        "When to pause" => WhenToPause(ctx),
+        "Look & sound" => LookAndSound(ctx),
         "Texts" => Texts(ctx),
-        "Sounds" => Sounds(ctx),
+        "Strict mode" => Lock(ctx),
         "Stats" => Stats(ctx),
         _ => General(ctx),
     };
+
+    // ------------------------------------------------------------------ Home
+    /// <summary>First page: what's happening now, the main actions, your breaks with on/off, today's numbers, quick links.</summary>
+    private static StackPanel Home(SettingsContext ctx)
+    {
+        var c = ctx.C;
+        var b = new PageBuilder(ctx, "Home");
+
+        b.Group("Right now");
+        var status = new TextBlock { FontSize = 22, FontWeight = FontWeights.SemiBold, TextWrapping = TextWrapping.Wrap };
+        status.SetResourceReference(TextBlock.FontFamilyProperty, "DisplayFont");
+        status.SetResourceReference(TextBlock.ForegroundProperty, "Text1Brush");
+        var detail = new TextBlock { FontSize = 13, Margin = new Thickness(0, 4, 0, 0), TextWrapping = TextWrapping.Wrap };
+        detail.SetResourceReference(TextBlock.ForegroundProperty, "Text2Brush");
+        var pauseButton = new Button { Margin = new Thickness(0, 0, 8, 0) };
+        void Refresh()
+        {
+            if (c.RunningRule is { } running) { status.Text = $"On a break: {running.Name}"; detail.Text = "Enjoy it."; }
+            else if (c.Pause.IsPaused) { status.Text = "Breaks are paused"; detail.Text = c.Pause.Reason ?? ""; }
+            else if (c.Scheduler.NextBreak() is { } next)
+            {
+                status.Text = $"Next: {next.Rule.Name} in {Format.Countdown(next.In)}";
+                detail.Text = c.Scheduler.TimersFrozen && next.Rule.TimerMode == TimerMode.ActiveTime
+                    ? "The countdown is paused because there's no input right now."
+                    : $"{Format.Duration(next.Rule.Duration)} · {Styles.First(s => s.Item1 == next.Rule.Style).Item2.ToLowerInvariant()}";
+            }
+            else { status.Text = "No breaks are on"; detail.Text = "Turn one on below, or add one in Breaks."; }
+            pauseButton.Content = c.Signals.Manual.IsPaused(c.Clock.Now) ? "Resume breaks" : "Pause for 30 min";
+        }
+        var live = new System.Windows.Threading.DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
+        live.Tick += (_, _) => Refresh();
+        status.Loaded += (_, _) => live.Start();
+        status.Unloaded += (_, _) => live.Stop();
+        Refresh();
+
+        var take = b.Button("Take a break now", () =>
+        {
+            if (c.Settings.Rules.FirstOrDefault(r => r.Enabled) is { } r) c.TakeNow(r.Id);
+            Refresh();
+        }, "PrimaryButton");
+        pauseButton.SetResourceReference(FrameworkElement.StyleProperty, "BaseButton");
+        pauseButton.Click += (_, _) =>
+        {
+            if (c.Signals.Manual.IsPaused(c.Clock.Now)) c.Resume();
+            else if (c.PauseFor(TimeSpan.FromMinutes(30)) is { } why) ThemedDialog.Info("Can't pause right now", why, ThemedDialog.Kind.Warning);
+            Refresh();
+        };
+        var now = new StackPanel { Margin = new Thickness(0, 14, 0, 14) };
+        now.Children.Add(status);
+        now.Children.Add(detail);
+        var actions = PageBuilder.Buttons(take, pauseButton);
+        actions.Margin = new Thickness(0, 14, 0, 0);
+        now.Children.Add(actions);
+        b.Add(now);
+
+        b.Group("Your breaks");
+        foreach (var r in ctx.Edit.Rules)
+            b.Toggle("Rules[].Enabled", r.Name, Summary(r), () => r.Enabled, v => r.Enabled = v);
+        if (ctx.Edit.Rules.Count == 0)
+            b.Add(new TextBlock { Text = "No breaks yet." }.WithRef(TextBlock.ForegroundProperty, "Text2Brush"));
+        b.Add(b.Button("Edit breaks", () => ctx.Navigate("Breaks", null)));
+
+        b.Group("Today");
+        var today = DateOnly.FromDateTime(DateTime.Now);
+        IReadOnlyList<Core.History.HistoryEntry> entries;
+        try { entries = c.History.ReadAll(); } catch (IOException) { entries = []; }
+        var day = Core.History.Stats.PerDay(entries, today, today)[0];
+        b.Add(new TextBlock
+        {
+            Text = day.Taken + day.Skipped + day.Natural + day.Postponed == 0
+                ? "No breaks yet today."
+                : $"{day.Taken} taken · {day.Natural} counted while you were away · {day.Postponed} postponed · {day.Skipped} skipped",
+            FontSize = 13.5,
+        }.WithRef(TextBlock.ForegroundProperty, "Text1Brush"));
+
+        b.Group("Quick links");
+        b.Add(PageBuilder.Buttons(
+            b.Button("Quiet times (lessons)", () => ctx.Navigate("When to pause", null)),
+            b.Button("Look & sound", () => ctx.Navigate("Look & sound", null)),
+            b.Button("Setup guide", () => (Application.Current as App)?.ShowSetupGuide())));
+        return b.Panel;
+    }
+
+    private static StackPanel WhenToPause(SettingsContext ctx)
+    {
+        var b = new PageBuilder(ctx, "When to pause");
+        b.Intro("Breaks wait while you're busy: during your quiet times (like lessons), in apps you pick, on calls, and while you're away.");
+        Pausing(ctx, b);
+        Activity(ctx, b);
+        return b.Panel;
+    }
+
+    private static StackPanel LookAndSound(SettingsContext ctx)
+    {
+        var b = new PageBuilder(ctx, "Look & sound");
+        Appearance(ctx, b);
+        Sounds(ctx, b);
+        return b.Panel;
+    }
 
     // ------------------------------------------------------------------ labels
     private static readonly (TimerMode, string)[] TimerModes =
@@ -58,15 +155,15 @@ public static class SettingsPages
     // ------------------------------------------------------------------ Rules
     private static StackPanel Rules(SettingsContext ctx)
     {
-        var b = new PageBuilder(ctx, "Rules");
-        b.Intro("Each rule is \"every X, take a break for Y\". Add as many as you like; each has its own style, warning and lock.");
-        b.Group("Your rules");
+        var b = new PageBuilder(ctx, "Breaks");
+        b.Intro("Each break is \"every X, take a break for Y\". Add as many as you like. Click Edit to change its warning, lock, messages and sounds.");
+        b.Group("Your breaks");
         var rules = ctx.Edit.Rules;
         if (rules.Count == 0)
-            b.Add(new TextBlock { Text = "No rules yet. Add one below.", Margin = new Thickness(0, 12, 0, 12) }.WithRef(TextBlock.ForegroundProperty, "Text2Brush"));
+            b.Add(new TextBlock { Text = "No breaks yet. Add one below.", Margin = new Thickness(0, 12, 0, 12) }.WithRef(TextBlock.ForegroundProperty, "Text2Brush"));
         for (var i = 0; i < rules.Count; i++) b.Add(RuleCard(ctx, rules[i], i));
 
-        var add = b.Button("+ Add rule", () => { }, "PrimaryButton");
+        var add = b.Button("+ Add break", () => { }, "PrimaryButton");
         var menu = new ContextMenu();
         foreach (var (name, create) in RuleTemplates.All)
         {
@@ -78,7 +175,7 @@ public static class SettingsPages
                 if (rules.Any(x => x.Name == r.Name)) r.Name += $" {rules.Count + 1}";
                 rules.Add(r);
                 ctx.MarkDirty();
-                ctx.Navigate("Rules", r.Id.ToString());
+                ctx.Navigate("Breaks", r.Id.ToString());
             };
             menu.Items.Add(item);
         }
@@ -86,7 +183,7 @@ public static class SettingsPages
         add.Click += (_, _) => { menu.PlacementTarget = add; menu.Placement = System.Windows.Controls.Primitives.PlacementMode.Bottom; menu.VerticalOffset = 4; menu.IsOpen = true; };
         b.AddLoose(PageBuilder.Buttons(add)); // right under the rule list
 
-        b.Group("When rules overlap");
+        b.Group("When breaks overlap");
         b.Choice("Collision", "Overlapping breaks", "What happens when two rules are due at about the same time.",
             () => ctx.Edit.Collision, v => ctx.Edit.Collision = v,
             [(CollisionPolicy.BiggerWins, "Bigger break wins"), (CollisionPolicy.Sequential, "Run both, shortest first"), (CollisionPolicy.ResetAll, "Any break resets all timers")],
@@ -125,7 +222,7 @@ public static class SettingsPages
             return btn;
         }
         var edit = new Button { Content = "Edit", Margin = new Thickness(0, 0, 6, 0) };
-        edit.Click += (_, _) => ctx.Navigate("Rules", r.Id.ToString());
+        edit.Click += (_, _) => ctx.Navigate("Breaks", r.Id.ToString());
         actions.Children.Add(edit);
         actions.Children.Add(Icon("\uE768", "Preview this break (10 s, never locks)", () => Preview(ctx, r)));
         actions.Children.Add(Icon("\uE74A", "Move up", () => { Swap(rules, index, index - 1); ctx.MarkDirty(); ctx.Rebuild(); }, index > 0));
@@ -167,8 +264,8 @@ public static class SettingsPages
 
     private static StackPanel RuleEditor(SettingsContext ctx, BreakRule r)
     {
-        var b = new PageBuilder(ctx, "Rules", r.Id.ToString());
-        var back = b.Button("← All rules", () => ctx.Navigate("Rules", null), "GhostButton");
+        var b = new PageBuilder(ctx, "Breaks", r.Id.ToString());
+        var back = b.Button("← All breaks", () => ctx.Navigate("Breaks", null), "GhostButton");
         var preview = b.Button("Preview (10 s)", () => Preview(ctx, r));
         b.AddLoose(PageBuilder.Buttons(back, preview));
         BuildRuleRows(b, ctx, r, "Rules[].");
@@ -284,7 +381,7 @@ public static class SettingsPages
     // ------------------------------------------------------------------ Lock & Commitment
     private static StackPanel Lock(SettingsContext ctx)
     {
-        var b = new PageBuilder(ctx, "Lock & Commitment");
+        var b = new PageBuilder(ctx, "Strict mode");
         b.Group("Input lock");
         b.Hotkey("Lock.EscapeHotkey", "Escape key combo", "Ends a Locked break early. TOTAL LOCK ignores it.", () => ctx.Edit.Lock.EscapeHotkey, v => ctx.Edit.Lock.EscapeHotkey = v,
             tip: "Pick something you won't press by accident, e.g. Ctrl+Shift+Alt+B.");
@@ -310,26 +407,27 @@ public static class SettingsPages
     }
 
     // ------------------------------------------------------------------ Pausing & Meetings
-    private static StackPanel Pausing(SettingsContext ctx)
+    private static StackPanel Pausing(SettingsContext ctx, PageBuilder? into = null)
     {
         var s = ctx.Edit.Pause;
-        var b = new PageBuilder(ctx, "Pausing & Meetings");
-        b.Group("Meetings & calls");
-        b.Toggle("Pause.DetectMicCamera", "Pause while the mic or camera is in use", "For Google Meet, Zoom, Teams calls. Off by default: game voice chat (Discord, in-game) uses the mic too.",
-            () => s.DetectMicCamera, v => s.DetectMicCamera = v, tip: "Uses Windows' privacy indicator data (the mic icon in the taskbar). If you voice-chat while gaming, leave this off or breaks would pause the whole time you talk.");
-        b.Lines("Pause.MeetingTitlePatterns", "Meeting window titles", "Pause while a window title contains any of these (one per line).",
-            () => s.MeetingTitlePatterns, v => s.MeetingTitlePatterns = v, advanced: true, minLines: 2);
-        b.Apps("Pause.MeetingProcesses", "Pause while these apps are running", "Breaks pause as long as one of these apps is open.",
-            () => s.MeetingProcesses, v => s.MeetingProcesses = v, advanced: true);
+        var b = into ?? new PageBuilder(ctx, "When to pause");
+        // Most-used first: quiet times (lessons), then apps, then calls (UX guideline 4).
+        b.Group("Quiet times", "No breaks during these times: lessons, meetings, gaming nights.");
+        b.Row("Pause.QuietTimes", "Quiet times", "Weekly. Pick the days, start, end and a label.",
+            new TimeWindowsEditor(s.QuietTimes, ctx.MarkDirty, "Add quiet time"), wideControl: true);
 
-        b.Group("Exceptions");
+        b.Group("Apps");
         b.Apps("Pause.ForegroundExceptions", "Pause while these apps are in front", "Breaks wait while one of these is the window you're using.",
             () => s.ForegroundExceptions, v => s.ForegroundExceptions = v,
             tip: "Click \"+ Add app…\" and pick from your open apps (e.g. OBS, Photoshop, a video player). Games are NOT paused unless you add them here.");
+        b.Apps("Pause.MeetingProcesses", "Pause while these apps are running", "Breaks pause as long as one of these apps is open, even in the background.",
+            () => s.MeetingProcesses, v => s.MeetingProcesses = v, advanced: true);
 
-        b.Group("Quiet times", "No breaks during these times — lessons, meetings, gaming nights…");
-        b.Row("Pause.QuietTimes", "Quiet times", "Weekly. Pick days, start, end and an optional label.",
-            new TimeWindowsEditor(s.QuietTimes, ctx.MarkDirty, "Add quiet time"), wideControl: true);
+        b.Group("Calls");
+        b.Toggle("Pause.DetectMicCamera", "Pause while the mic or camera is in use", "For Google Meet, Zoom and Teams calls. Off by default, because game voice chat (Discord, in-game) uses the mic too.",
+            () => s.DetectMicCamera, v => s.DetectMicCamera = v, tip: "Uses Windows' privacy indicator data (the mic icon in the taskbar). If you voice-chat while gaming, leave this off or breaks would pause the whole time you talk.");
+        b.Lines("Pause.MeetingTitlePatterns", "Meeting window titles", "Pause while a window title contains any of these (one per line).",
+            () => s.MeetingTitlePatterns, v => s.MeetingTitlePatterns = v, advanced: true, minLines: 2);
 
         b.Group("Other");
         b.Toggle("Pause.PauseDuringFullscreen", "Pause during fullscreen apps", "Off: breaks still appear over games and videos.", () => s.PauseDuringFullscreen, v => s.PauseDuringFullscreen = v);
@@ -340,10 +438,10 @@ public static class SettingsPages
     }
 
     // ------------------------------------------------------------------ Activity & Idle
-    private static StackPanel Activity(SettingsContext ctx)
+    private static StackPanel Activity(SettingsContext ctx, PageBuilder? into = null)
     {
         var s = ctx.Edit.Idle;
-        var b = new PageBuilder(ctx, "Activity & Idle");
+        var b = into ?? new PageBuilder(ctx, "When to pause");
         b.Group("Natural breaks");
         b.Toggle("Idle.NaturalBreaks", "Count time away as a break", "If you were away at least as long as a break, that break is done.",
             () => s.NaturalBreaks, v => s.NaturalBreaks = v, tip: "Example: away 6 min → the 5 min long break counts as taken and its timer restarts.");
@@ -360,10 +458,10 @@ public static class SettingsPages
     }
 
     // ------------------------------------------------------------------ Appearance
-    private static StackPanel Appearance(SettingsContext ctx)
+    private static StackPanel Appearance(SettingsContext ctx, PageBuilder? into = null)
     {
         var a = ctx.Edit.Appearance;
-        var b = new PageBuilder(ctx, "Appearance");
+        var b = into ?? new PageBuilder(ctx, "Look & sound");
         b.Group("Theme");
         b.Choice("Appearance.Theme", "Theme", "Light, dark, or follow Windows.", () => a.Theme, v => a.Theme = v, Themes, appearance: true);
         b.Choice("Appearance.Accent", "Accent colour", "Main colour for buttons, rings and flashes.", () => a.Accent, v => a.Accent = v, Accents, appearance: true);
@@ -465,10 +563,10 @@ public static class SettingsPages
     }
 
     // ------------------------------------------------------------------ Sounds
-    private static StackPanel Sounds(SettingsContext ctx)
+    private static StackPanel Sounds(SettingsContext ctx, PageBuilder? into = null)
     {
         var s = ctx.Edit.Sound;
-        var b = new PageBuilder(ctx, "Sounds");
+        var b = into ?? new PageBuilder(ctx, "Look & sound");
         b.Group("Volume");
         b.Toggle("Sound.Mute", "Mute all sounds", "", () => s.Mute, v => s.Mute = v);
         b.Slider("Sound.Volume", "Volume", "Applies to every sound.", () => s.Volume, v => s.Volume = Math.Round(v, 2), 0, 1, Pct);

@@ -29,7 +29,7 @@ public sealed class SettingsWindow : Window
     private readonly TextBlock _status = new() { VerticalAlignment = VerticalAlignment.Center, FontSize = 12.5 };
     private readonly CheckBox _advanced = new() { Content = "Advanced", VerticalAlignment = VerticalAlignment.Center };
     private bool _showAllOnce;
-    private string _page = "Rules";
+    private string _page = "Home";
     private string? _sub;
     private bool _dirty, _saved;
 
@@ -61,7 +61,7 @@ public sealed class SettingsWindow : Window
             if (e.Key == Key.F && Keyboard.Modifiers == ModifierKeys.Control) { _search.Focus(); e.Handled = true; }
             if (e.Key == Key.S && Keyboard.Modifiers == ModifierKeys.Control) { Save(); e.Handled = true; }
         };
-        Show(page ?? "Rules", null);
+        Show(page ?? "Home", null);
     }
 
     private void ApplyTitleBar()
@@ -182,7 +182,7 @@ public sealed class SettingsWindow : Window
     internal void TestSave() => Save();
 
     /// <summary>Open a rule's editor directly.</summary>
-    public void ShowRule(Guid id) => Show("Rules", id.ToString());
+    public void ShowRule(Guid id) => Show("Breaks", id.ToString());
 
     // ------------------------------------------------------------------ navigation & search
 
@@ -197,7 +197,7 @@ public sealed class SettingsWindow : Window
         _scroll.Content = panel;
         _scroll.ScrollToTop();
         var rule = sub is null ? null : _ctx.Edit.Rules.FirstOrDefault(r => r.Id.ToString() == sub);
-        _pageTitle.Text = rule is null ? page : $"Rule · {rule.Name}";
+        _pageTitle.Text = rule is null ? page : $"Break · {rule.Name}";
         _advanced.IsChecked = _ctx.Edit.General.AdvancedMode;
         foreach (ListBoxItem item in _nav.Items)
             if ((string)item.Tag == page && !Equals(_nav.SelectedItem, item)) _nav.SelectedItem = item;
@@ -214,7 +214,7 @@ public sealed class SettingsWindow : Window
         {
             foreach (var (name, _) in SettingsPages.Categories)
                 if (name != "Stats") SettingsPages.Build(name, ctx, null);
-            if (_ctx.Edit.Rules.FirstOrDefault() is { } first) SettingsPages.Build("Rules", ctx, first.Id.ToString());
+            if (_ctx.Edit.Rules.FirstOrDefault() is { } first) SettingsPages.Build("Breaks", ctx, first.Id.ToString());
         }
         finally { _ctx.Edit.General.AdvancedMode = advanced; }
         return ctx.Rows;
@@ -402,7 +402,7 @@ public sealed class SettingsWindow : Window
         edit.General.AdvancedMode = true;
         var ctx = new SettingsContext(edit, c);
         foreach (var (name, _) in SettingsPages.Categories) SettingsPages.Build(name, ctx, null);
-        SettingsPages.Build("Rules", ctx, edit.Rules[0].Id.ToString());
+        SettingsPages.Build("Breaks", ctx, edit.Rules[0].Id.ToString());
         return SettingsPaths.Missing(ctx.Paths);
     }
 }

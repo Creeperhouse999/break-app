@@ -56,7 +56,7 @@ It's a small native tray app (C# / WPF, ~0.6 MB exe). Stretchly is a good app an
 <td width="50%"><img src="docs/screenshots/notification-warning.png" alt="Warning before a break" /><br/><sub>Warning before a break</sub></td>
 </tr>
 <tr>
-<td><img src="docs/screenshots/settings-rules.png" alt="Rules settings" /><br/><sub>Rules: as many as you like</sub></td>
+<td><img src="docs/screenshots/settings-home.png" alt="Home page of the settings" /><br/><sub>Home: next break, quick actions, your breaks</sub></td>
 <td><img src="docs/screenshots/settings-rule-editor.png" alt="Rule editor" /><br/><sub>Every rule is fully configurable</sub></td>
 </tr>
 <tr>
@@ -83,7 +83,7 @@ Your settings and history are stored in `%AppData%\BreakApp\`. To uninstall, qui
 
 - **Left-click / double-click** the tray icon → Settings. **Right-click** → take a break now, skip next, pause (15 min … until resumed), stats, setup guide, quit.
 - The tray icon's ring shrinks as the next break gets closer; hover it for the exact time.
-- **Settings** has 10 categories: Rules · Warnings · Lock & Commitment · Pausing & Meetings · Activity & Idle · Appearance · Texts · Sounds · Stats · General. Every setting has a short description and an ⓘ tip; changes **save automatically**; **Ctrl+F** searches all of them; **Advanced** shows the rarely used ones; **Presets** (Gentle · Balanced · Eye care · Strict) show exactly what will change before applying.
+- **Settings** opens on **Home** (next break, Take a break now, Pause, your breaks with on/off, today's numbers). The other pages: **Breaks** (each break with its warning, lock, messages and sounds) · **When to pause** (quiet times, apps, calls, idle) · **Look & sound** · **Texts** · **Strict mode** · **Stats** · **General**. Every setting has a short description and an ⓘ tip; changes **save automatically**; **Ctrl+F** searches all of them; **Advanced** shows the rarely used ones; **Presets** (Gentle · Balanced · Eye care · Strict) show exactly what will change before applying.
 - Default shortcuts: **Ctrl+Alt+P** pause/resume, **Ctrl+Alt+B** take a break now, **Ctrl+Shift+Alt+B** end a *Locked* break early. All changeable.
 
 ## FAQ

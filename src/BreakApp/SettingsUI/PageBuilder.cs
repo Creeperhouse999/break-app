@@ -79,6 +79,7 @@ public sealed class PageBuilder
         if (advanced && !_ctx.Advanced) return;
         EnsureGroup();
         if (e is FrameworkElement fe && fe.Margin == default) fe.Margin = new Thickness(0, 10, 0, 10);
+        if (e is Button lone) lone.HorizontalAlignment = HorizontalAlignment.Left; // a single button is never full-width
         AddDivider();
         _group!.Children.Add(e);
     }

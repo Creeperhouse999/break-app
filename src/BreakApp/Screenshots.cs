@@ -49,12 +49,12 @@ internal static class Screenshots
         Save(Detach(bw, 1600, 900, opaqueBackdrop: true), Path.Combine(dir, "break-fullscreen.png"));
 
         // settings window pages
-        foreach (var (page, file) in new[] { ("Rules", "settings-rules.png"), ("Appearance", "settings-appearance.png"), ("Texts", "settings-texts.png") })
+        foreach (var (page, file) in new[] { ("Home", "settings-home.png"), ("Breaks", "settings-rules.png"), ("Look & sound", "settings-appearance.png"), ("Texts", "settings-texts.png") })
         {
             var sw = new SettingsWindow(c, page);
             Save(Detach(sw, 1040, 740), Path.Combine(dir, file));
         }
-        var editor = new SettingsWindow(c, "Rules");
+        var editor = new SettingsWindow(c, "Breaks");
         editor.ShowRule(settings.Rules[1].Id);
         Save(Detach(editor, 1040, 740), Path.Combine(dir, "settings-rule-editor.png"));
 
@@ -66,7 +66,7 @@ internal static class Screenshots
         // light theme
         settings.Appearance.Theme = ThemeMode.Light;
         ThemeManager.Apply(settings.Appearance);
-        Save(Detach(new SettingsWindow(c, "Pausing & Meetings"), 1040, 740), Path.Combine(dir, "settings-light.png"));
+        Save(Detach(new SettingsWindow(c, "When to pause"), 1040, 740), Path.Combine(dir, "settings-light.png"));
 
         c.Dispose();
         try { Directory.Delete(tmp, true); } catch { }

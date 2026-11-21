@@ -72,10 +72,10 @@ internal static class UxTour
             await Wait(350);
             Shot("settings-" + name.Replace(" & ", "-").Replace(' ', '-').ToLowerInvariant(), Rect(w));
         }
-        w.TestNavigate("Rules", w.TestContext.Edit.Rules[0].Id.ToString());
+        w.TestNavigate("Breaks", w.TestContext.Edit.Rules[0].Id.ToString());
         await Wait(350);
         Shot("settings-rule-editor", Rect(w));
-        w.TestNavigate("Rules");
+        w.TestNavigate("Breaks");
         await Wait(200);
         w.TestSearch("quiet");
         await Wait(350);
@@ -98,9 +98,9 @@ internal static class UxTour
         Shot("app-picker", Rect(picker));
         picker.Close();
 
-        w.TestNavigate("Pausing & Meetings");
+        w.TestNavigate("When to pause");
         w.TestContext.Edit.Pause.ForegroundExceptions = ["obs64", "Photoshop"];
-        w.TestNavigate("Pausing & Meetings");
+        w.TestNavigate("When to pause");
         await Wait(400);
         Shot("settings-pausing-with-apps", Rect(w));
         w.Close();

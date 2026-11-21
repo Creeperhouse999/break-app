@@ -22,8 +22,18 @@
 - README: note that the project is maintained by Claude with human review.
 - Owner's PC: installed v1.1.0 from the release; tray icon stays in the hidden area under the arrow (owner's choice; "always show" was tried and undone).
 
+- README: why Break App exists (Stretchly wasn't customizable enough and was too easy to ignore and switch off).
+- **Settings rework (v1.2.0)**, organized by what people want to do, per `docs/UX-GUIDELINES.md`:
+  - 10 categories → 8: Home (new) · Breaks · When to pause · Look & sound · Texts · Strict mode · Stats · General;
+  - Home: live "Next: … in mm:ss", Take a break now, Pause/Resume, breaks with on/off, today's numbers, quick links;
+  - Warnings page dropped (each break's editor has its warning); "rule" → "break" everywhere;
+  - When to pause starts with quiet times;
+  - a lone button is never full-width;
+  - the old layout is in tag `keep/settings-layout-2026-11-21`.
+- Verified: 174 tests, self-test 16/16, settings coverage OK, pages reviewed off-screen.
+
 **Next:**
-- A broader settings UX rework: the owner finds the settings unintuitive. Follow `docs/UX-GUIDELINES.md`.
+- The owner tries v1.2.0 (their 1.1.0 install should offer "Update now"). Then more UX polish from their feedback.
 
 ## 2026-11-20
 
