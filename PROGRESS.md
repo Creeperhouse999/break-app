@@ -20,7 +20,7 @@
 
 - Verified the update end to end: a 1.0.9 copy found v1.1.0, "Update now" swapped the exe (byte-identical to the release) and restarted, then showed "Updated to 1.1.0"; `.old` was removed.
 - README: note that the project is maintained by Claude with human review.
-- Owner's PC: installed v1.1.0 from the release; tray icon set to always visible (Windows' NotifyIconSettings IsPromoted).
+- Owner's PC: installed v1.1.0 from the release; tray icon stays in the hidden area under the arrow (owner's choice; "always show" was tried and undone).
 
 **Next:**
 - A broader settings UX rework: the owner finds the settings unintuitive. Follow `docs/UX-GUIDELINES.md`.
