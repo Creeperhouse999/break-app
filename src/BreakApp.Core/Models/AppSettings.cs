@@ -15,34 +15,16 @@ public sealed class AppSettings
     public GeneralSettings General { get; set; } = new();
     public TextSettings Texts { get; set; } = new();
 
+    private static BreakRule WithOrder(BreakRule r, int order) { r.Order = order; return r; }
+
     public static AppSettings CreateDefault() => new()
     {
+        // Neutral defaults (owner 2026-11-21): "Short break" and "Long break", generic messages.
+        // Old defaults ("Eye rest" / "Stretch") are kept in git tag keep/default-names-2026-11-21.
         Rules =
         [
-            new BreakRule
-            {
-                Name = "Eye rest",
-                Interval = TimeSpan.FromMinutes(20),
-                Duration = TimeSpan.FromSeconds(20),
-                Style = BreakStyle.Notification,
-                TimerMode = TimerMode.ActiveTime,
-                Lock = LockLevel.Skippable,
-                Warning = new WarningSettings { ShowNotification = false, PlaySound = false },
-                Messages = ["Look at something 6 metres away for 20 seconds.", "Blink slowly a few times and relax your eyes.", "Look out of the window."],
-                Order = 0,
-            },
-            new BreakRule
-            {
-                Name = "Stretch",
-                Interval = TimeSpan.FromMinutes(60),
-                Duration = TimeSpan.FromMinutes(5),
-                Style = BreakStyle.Fullscreen,
-                TimerMode = TimerMode.ActiveTime,
-                Lock = LockLevel.Skippable,
-                Warning = new WarningSettings { LeadTime = TimeSpan.FromSeconds(30) },
-                Messages = ["Stand up and stretch your arms over your head.", "Roll your shoulders and neck gently.", "Walk around and get some water."],
-                Order = 1,
-            },
+            Settings.RuleTemplates.ShortBreak(),
+            WithOrder(Settings.RuleTemplates.LongBreak(), 1),
         ],
     };
 }

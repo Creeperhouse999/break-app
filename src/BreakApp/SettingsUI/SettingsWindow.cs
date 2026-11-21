@@ -49,7 +49,7 @@ public sealed class SettingsWindow : Window
         MinHeight = 520;
         WindowStartupLocation = WindowStartupLocation.CenterScreen;
         FontFamily = (FontFamily)Application.Current.FindResource("AppFont");
-        Icon = System.Windows.Media.Imaging.BitmapFrame.Create(new Uri("pack://application:,,,/Assets/icon.ico"));
+        Icon = Theme.AppIcon.Large;
         SetResourceReference(BackgroundProperty, "WindowBackgroundBrush");
         SetResourceReference(ForegroundProperty, "Text1Brush");
         Content = BuildLayout();
@@ -84,7 +84,7 @@ public sealed class SettingsWindow : Window
         sideBg.SetResourceReference(Border.BackgroundProperty, "SidebarBrush");
         var brand = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(8, 0, 0, 18) };
         // Same icon as the window / taskbar / tray.
-        brand.Children.Add(new System.Windows.Controls.Image { Width = 28, Height = 28, Source = System.Windows.Media.Imaging.BitmapFrame.Create(new Uri("pack://application:,,,/Assets/icon.ico")) });
+        brand.Children.Add(new System.Windows.Controls.Image { Width = 28, Height = 28, Source = Theme.AppIcon.Large });
         brand.Children.Add(new TextBlock { Text = "Break App", FontSize = 16, FontWeight = FontWeights.SemiBold, Margin = new Thickness(10, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center }
             .WithRef(TextBlock.ForegroundProperty, "Text1Brush"));
         DockPanel.SetDock(brand, Dock.Top);
@@ -301,9 +301,9 @@ public sealed class SettingsWindow : Window
             {
                 var after = p.Apply(_ctx.Edit);
                 var diff = Presets.Diff(_ctx.Edit, after);
-                if (diff.Count == 0) { MessageBox.Show(this, "Your settings already match this preset.", p.Name); return; }
+                if (diff.Count == 0) { ThemedDialog.Info(p.Name, "Your settings already match this preset."); return; }
                 var text = $"Apply the {p.Name} preset? These will change:\n\n• " + string.Join("\n• ", diff);
-                if (MessageBox.Show(this, text, "Apply preset", MessageBoxButton.OKCancel, MessageBoxImage.Question) != MessageBoxResult.OK) return;
+                if (!ThemedDialog.Confirm($"Apply {p.Name}?", text, "Apply", "Cancel")) return;
                 _ctx.Edit = after;
                 SetDirty(true);
                 Show(_page, null);
@@ -398,7 +398,7 @@ public sealed class SettingsWindow : Window
     public static IReadOnlyList<string> CoverageCheck(BreakCoordinator c)
     {
         var edit = SettingsStore.Clone(c.Settings);
-        if (edit.Rules.Count == 0) edit.Rules.Add(RuleTemplates.Stretch());
+        if (edit.Rules.Count == 0) edit.Rules.Add(RuleTemplates.LongBreak());
         edit.General.AdvancedMode = true;
         var ctx = new SettingsContext(edit, c);
         foreach (var (name, _) in SettingsPages.Categories) SettingsPages.Build(name, ctx, null);

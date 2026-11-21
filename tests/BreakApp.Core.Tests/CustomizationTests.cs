@@ -128,3 +128,17 @@ public class CustomizationTests
         Assert.DoesNotContain("General.SetupDone", SettingsPaths.AllLeaves());
     }
 }
+
+public class NeutralDefaultsTests
+{
+    [Fact]
+    public void Defaults_AreShortAndLongBreak_WithNeutralMessages()
+    {
+        var s = AppSettings.CreateDefault();
+        Assert.Equal(["Short break", "Long break"], s.Rules.Select(r => r.Name));
+        var words = string.Join(" ", s.Rules.SelectMany(r => r.Messages)).ToLowerInvariant();
+        Assert.DoesNotContain("eye", words);
+        Assert.DoesNotContain("stretch", words);
+        Assert.All(s.Rules, r => Assert.NotEmpty(r.Messages));
+    }
+}

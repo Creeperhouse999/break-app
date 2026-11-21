@@ -16,8 +16,8 @@ public sealed class SettingsStoreTests : IDisposable
     {
         var s = SettingsStore.Load(PathOf("settings.json"));
         Assert.Equal(2, s.Rules.Count);
-        Assert.Equal("Eye rest", s.Rules[0].Name);
-        Assert.Equal("Stretch", s.Rules[1].Name);
+        Assert.Equal("Short break", s.Rules[0].Name);
+        Assert.Equal("Long break", s.Rules[1].Name);
     }
 
     [Fact]

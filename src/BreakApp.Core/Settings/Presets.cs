@@ -13,13 +13,14 @@ public static class Presets
         {
             foreach (var r in x.Rules) { r.Style = BreakStyle.Notification; r.Lock = LockLevel.Skippable; r.AllowSkip = true; }
         })),
-        new("Balanced", "The defaults: a 20 s eye rest every 20 min and a 5 min stretch every hour.", s => Map(s, x =>
+        new("Balanced", "The defaults: a 20 s short break every 20 min and a 5 min long break every hour.", s => Map(s, x =>
             x.Rules = ReuseIds(x.Rules, AppSettings.CreateDefault().Rules))),
-        new("Eye care", "20-20-20 rule: every 20 min look 6 m away for 20 s (flashing notification), plus an hourly stretch window.", s => Map(s, x =>
+        new("Eye care", "20-20-20 rule: every 20 min look 6 m away for 20 s (flashing notification), plus an hourly long break in a window.", s => Map(s, x =>
         {
-            var eye = RuleTemplates.EyeRest();
+            var eye = RuleTemplates.ShortBreak();
+            eye.Messages = ["Look at something 6 metres away for 20 seconds.", "Blink a few times and relax your eyes."];
             eye.Flash.Enabled = true;
-            var stretch = RuleTemplates.Stretch();
+            var stretch = RuleTemplates.LongBreak();
             stretch.Style = BreakStyle.Window;
             stretch.Order = 1;
             x.Rules = ReuseIds(x.Rules, [eye, stretch]);
@@ -93,18 +94,20 @@ public static class Presets
 
 public static class RuleTemplates
 {
-    public static BreakRule EyeRest() => new()
+    /// <summary>A quick pause every 20 minutes (old name: "Eye rest").</summary>
+    public static BreakRule ShortBreak() => new()
     {
-        Name = "Eye rest", Interval = TimeSpan.FromMinutes(20), Duration = TimeSpan.FromSeconds(20),
+        Name = "Short break", Interval = TimeSpan.FromMinutes(20), Duration = TimeSpan.FromSeconds(20),
         Style = BreakStyle.Notification, Warning = new WarningSettings { ShowNotification = false, PlaySound = false },
-        Messages = ["Look at something 6 metres away for 20 seconds.", "Blink slowly a few times and relax your eyes."],
+        Messages = ["Take a short break.", "Look away from the screen for a bit.", "Lean back and breathe for a moment."],
     };
 
-    public static BreakRule Stretch() => new()
+    /// <summary>A proper break every hour (old name: "Stretch").</summary>
+    public static BreakRule LongBreak() => new()
     {
-        Name = "Stretch", Interval = TimeSpan.FromMinutes(60), Duration = TimeSpan.FromMinutes(5),
+        Name = "Long break", Interval = TimeSpan.FromMinutes(60), Duration = TimeSpan.FromMinutes(5),
         Style = BreakStyle.Fullscreen, Warning = new WarningSettings { LeadTime = TimeSpan.FromSeconds(30) },
-        Messages = ["Stand up and stretch your arms over your head.", "Roll your shoulders and neck gently."],
+        Messages = ["Time for a longer break.", "Get up and move around for a few minutes.", "Grab a glass of water."],
     };
 
     public static BreakRule Walk() => new()
@@ -130,7 +133,7 @@ public static class RuleTemplates
 
     public static IReadOnlyList<(string Name, Func<BreakRule> Create)> All { get; } =
     [
-        ("Eye rest", EyeRest), ("Stretch", Stretch), ("Walk", Walk), ("Hydrate", Hydrate), ("Custom", Custom),
+        ("Short break", ShortBreak), ("Long break", LongBreak), ("Walk", Walk), ("Hydrate", Hydrate), ("Custom", Custom),
     ];
 }
 

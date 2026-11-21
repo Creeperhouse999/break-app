@@ -4,8 +4,8 @@
 
 # Break App
 
-**Break reminders for Windows that you can bend to your will.**
-Rest your eyes, stretch, walk — on your schedule, in the style you like, as gentle or as strict as you want.
+**A break reminder for Windows that does what you set it to.**
+Short and long breaks on your own schedule, as a small notification or a full-screen break, easy to skip or properly locked.
 
 ![Windows 10/11](https://img.shields.io/badge/Windows-10%20%7C%2011-0078D4?logo=windows&logoColor=white)
 ![.NET 10](https://img.shields.io/badge/.NET-10-512BD4?logo=dotnet&logoColor=white)
@@ -32,9 +32,9 @@ It's a small native tray app (C# / WPF, ~0.5 MB exe), inspired by [Stretchly](ht
 | 🕒 **Three timer modes** | *Active time* (only while you use the PC) · *clock time* · *fixed clock times* (:00, :20, :40…). |
 | 🔔 **Notifications that get noticed** | A card in the corner with a live countdown that can **glow**, **pulse** (grow and shrink) or both. |
 | 🖥️ **Window or fullscreen breaks** | Ring, bar or big-number countdown, on every monitor or just the ones you pick. |
-| 🔒 **Real input lock** | *Locked*: keyboard and mouse blocked — Alt+Tab and the Win key too — until your escape combo. *TOTAL LOCK*: no way out until the timer ends (asks "are you sure?" first). |
+| 🔒 **Real input lock** | *Locked*: keyboard and mouse are blocked (Alt+Tab and the Win key too) until you press your escape combo. *TOTAL LOCK*: no way out until the timer ends (asks "are you sure?" first). |
 | ⚠️ **Warnings** | A heads-up before each break with **Start now / Postpone / Skip** (each optional). |
-| ⏸️ **Smart pausing** | Quiet times (lessons, gaming nights), apps you never want interrupted, Do Not Disturb, manual pause — and optional call detection. |
+| ⏸️ **Smart pausing** | Quiet times (lessons, gaming nights), apps you never want interrupted, Do Not Disturb, manual pause, and optional call detection. |
 | 🚶 **Natural breaks** | Time without input doesn't count toward the next break (the countdown pauses after 1 min of no input), and time away counts as a break. Gamepad input and watching videos count as activity. |
 | 🤝 **Overlapping rules** | Bigger break wins, run both, or reset all timers. |
 | 🧱 **Commitment mode** *(optional)* | No skipping, pausing or quitting shortly before strict breaks; making them weaker waits for a cooldown. |
@@ -50,7 +50,7 @@ It's a small native tray app (C# / WPF, ~0.5 MB exe), inspired by [Stretchly](ht
 <td width="50%"><img src="docs/screenshots/notification-warning.png" alt="Warning before a break" /><br/><sub>Warning before a break</sub></td>
 </tr>
 <tr>
-<td><img src="docs/screenshots/settings-rules.png" alt="Rules settings" /><br/><sub>Rules — as many as you like</sub></td>
+<td><img src="docs/screenshots/settings-rules.png" alt="Rules settings" /><br/><sub>Rules: as many as you like</sub></td>
 <td><img src="docs/screenshots/settings-rule-editor.png" alt="Rule editor" /><br/><sub>Every rule is fully configurable</sub></td>
 </tr>
 <tr>
@@ -75,16 +75,16 @@ Your settings and history are stored in `%AppData%\BreakApp\`. To uninstall, qui
 
 - **Left-click / double-click** the tray icon → Settings. **Right-click** → take a break now, skip next, pause (15 min … until resumed), stats, setup guide, quit.
 - The tray icon's ring shrinks as the next break gets closer; hover it for the exact time.
-- **Settings** has 10 categories — Rules · Warnings · Lock & Commitment · Pausing & Meetings · Activity & Idle · Appearance · Texts · Sounds · Stats · General. Every setting has a short description and an ⓘ tip; changes **save automatically**; **Ctrl+F** searches all of them; **Advanced** shows the rarely used ones; **Presets** (Gentle · Balanced · Eye care · Strict) show exactly what will change before applying.
+- **Settings** has 10 categories: Rules · Warnings · Lock & Commitment · Pausing & Meetings · Activity & Idle · Appearance · Texts · Sounds · Stats · General. Every setting has a short description and an ⓘ tip; changes **save automatically**; **Ctrl+F** searches all of them; **Advanced** shows the rarely used ones; **Presets** (Gentle · Balanced · Eye care · Strict) show exactly what will change before applying.
 - Default shortcuts: **Ctrl+Alt+P** pause/resume, **Ctrl+Alt+B** take a break now, **Ctrl+Shift+Alt+B** end a *Locked* break early. All changeable.
 
 ## FAQ
 
-**I play games with friends on voice chat — will breaks keep pausing?**
+**I play games with friends on voice chat. Will breaks keep pausing?**
 Only if you turn on *Pause while the mic or camera is in use*. It's **off by default** for exactly this reason: Discord and in-game voice chat use the mic too. Turn it on if you mostly need it for work calls (Google Meet, Zoom, Teams).
 
 **Do games pause my breaks?**
-No — breaks still appear over games. If you want a specific game (or any app) to never be interrupted, add it under *Pausing & Meetings → Pause while these apps are in front* — click **+ Add app…** and pick it from the list of open apps.
+No, breaks still appear over games. If you want a specific game (or any app) to never be interrupted, add it under *Pausing & Meetings → Pause while these apps are in front* — click **+ Add app…** and pick it from the list of open apps.
 
 **Can I always get out of a locked break?**
 The lock is best effort and needs no admin rights. These always work, by Windows design: **Ctrl+Alt+Del** → Task Manager, admin windows that were already open, and UAC prompts. *Locked* breaks also end with your escape combo; *TOTAL LOCK* doesn't.
@@ -129,7 +129,7 @@ docs/               design spec, implementation plan, screenshots
 
 ## Report a bug or ask for a feature
 
-Found a problem or have an idea? [Open an issue](../../issues/new/choose) — pick **🐞 Bug report** or **✨ Feature request**. For a bug, the last lines of `%AppData%BreakApppp.log` and a screenshot help a lot (remove anything private). Questions are welcome in [Discussions](../../discussions).
+Found a problem or have an idea? [Open an issue](../../issues/new/choose) and pick **🐞 Bug report** or **✨ Feature request**. For a bug, the last lines of `%AppData%BreakApppp.log` and a screenshot help a lot (remove anything private). Questions are welcome in [Discussions](../../discussions).
 
 Issues are labelled by area (`area: breaks`, `area: lock`, `area: pausing`, `area: idle`, `area: settings`, `area: tray`, `area: ui/ux`) and `needs triage` until someone has looked at them.
 

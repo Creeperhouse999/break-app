@@ -56,7 +56,8 @@ public partial class App : Application
             // Never leave an invisible process holding the single-instance lock.
             InputLock.ReleaseAll();
             Log("STARTUP FAILED: " + ex);
-            MessageBox.Show($"Break App could not start:\n\n{ex.Message}\n\nDetails: {LogPath}", "Break App", MessageBoxButton.OK, MessageBoxImage.Error);
+            try { ThemeManager.Apply(new Core.Models.AppearanceSettings()); } catch { /* best effort: the dialog still shows */ }
+            SettingsUI.ThemedDialog.Info("Break App could not start", $"{ex.Message}\n\nDetails are in {LogPath}", SettingsUI.ThemedDialog.Kind.Error);
             Shutdown(1);
         }
     }
@@ -148,7 +149,7 @@ public partial class App : Application
         }
         if (args.Contains("--demo-notification"))
         {
-            var r = Coordinator.Settings.Rules.FirstOrDefault() ?? Core.Settings.RuleTemplates.Stretch();
+            var r = Coordinator.Settings.Rules.FirstOrDefault() ?? Core.Settings.RuleTemplates.LongBreak();
             Coordinator.Notifications.Show(new Notifications.NotificationRequest(
                 "demo", Notifications.NotificationKind.Info, "Stretch in 30 s", "5 min break · fullscreen",
                 [new("now", "Start now", true), new("postpone", "Postpone 5 min"), new("skip", "Skip")],
@@ -160,7 +161,7 @@ public partial class App : Application
         {
             var end = DateTime.Now.AddSeconds(15);
             Coordinator.Notifications.Show(new Notifications.NotificationRequest(
-                "demo-break", Notifications.NotificationKind.Warning, "Eye rest", "Look at something 6 metres away for 20 seconds.",
+                "demo-break", Notifications.NotificationKind.Warning, "Short break", "Look away from the screen for a bit.",
                 [new("skip", "Skip"), new("postpone", "Postpone 5 min")], TimeSpan.Zero,
                 Remaining: () => end - DateTime.Now, Total: TimeSpan.FromSeconds(15),
                 Flash: new Core.Models.FlashSettings { Enabled = true, Style = Core.Models.FlashStyle.Pulse, PulseAmount = 6, SpeedHz = 1.5 }),
@@ -173,11 +174,11 @@ public partial class App : Application
             // --demo-break window|fullscreen|locked|total [seconds]
             var kind = args.ElementAtOrDefault(demoBreak + 1) ?? "fullscreen";
             var secs = int.TryParse(args.ElementAtOrDefault(demoBreak + 2), out var n) ? n : 8;
-            var rule = Core.Settings.RuleTemplates.Stretch();
+            var rule = Core.Settings.RuleTemplates.LongBreak();
             rule.Duration = TimeSpan.FromSeconds(secs);
             rule.Style = kind == "window" ? Core.Models.BreakStyle.Window : Core.Models.BreakStyle.Fullscreen;
             rule.Lock = kind switch { "locked" => Core.Models.LockLevel.LockedWithKeybind, "total" => Core.Models.LockLevel.Total, _ => Core.Models.LockLevel.Skippable };
-            Coordinator.Presenter.Present(rule, [Core.Settings.RuleTemplates.EyeRest()], rule.Messages[0], outcome =>
+            Coordinator.Presenter.Present(rule, [Core.Settings.RuleTemplates.ShortBreak()], rule.Messages[0], outcome =>
             {
                 Log("demo break result: " + outcome);
                 Dispatcher.BeginInvoke(Shutdown, DispatcherPriority.Background);

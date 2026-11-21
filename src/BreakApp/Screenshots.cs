@@ -38,13 +38,13 @@ internal static class Screenshots
             [new("now", "Start now", true), new("postpone", "Postpone 5 min"), new("skip", "Skip")], TimeSpan.FromSeconds(8)), null, settings.Appearance);
         Save(Card(warn, glow: false), Path.Combine(dir, "notification-warning.png"));
         var end = DateTime.Now.AddSeconds(14);
-        var brk = new NotificationWindow(new NotificationRequest("b", NotificationKind.Warning, "Eye rest", "Look at something 6 metres away for 20 seconds.",
+        var brk = new NotificationWindow(new NotificationRequest("b", NotificationKind.Warning, "Short break", "Look away from the screen for a bit.",
             [new("skip", "Skip"), new("postpone", "Postpone 5 min")], TimeSpan.Zero, Remaining: () => end - DateTime.Now, Total: TimeSpan.FromSeconds(20)), null, settings.Appearance);
         Save(Card(brk, glow: true), Path.Combine(dir, "notification-break.png"));
 
         // fullscreen break
-        var rule = RuleTemplates.Stretch();
-        var bw = new BreakWindow(rule, "Also covers: Eye rest", rule.Messages[0], true, default, settings.Appearance, null, "Skip break", "Postpone 5 min", "Press Esc to skip.");
+        var rule = RuleTemplates.LongBreak();
+        var bw = new BreakWindow(rule, "Also covers: Short break", rule.Messages[0], true, default, settings.Appearance, null, "Skip break", "Postpone 5 min", "Press Esc to skip.");
         bw.Update(TimeSpan.FromSeconds(192), TimeSpan.FromMinutes(5));
         Save(Detach(bw, 1600, 900, opaqueBackdrop: true), Path.Combine(dir, "break-fullscreen.png"));
 

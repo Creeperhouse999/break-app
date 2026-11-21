@@ -63,7 +63,7 @@ public sealed class TrayService : IDisposable
         }
     }
 
-    /// <summary>"Next: Eye rest in 12:30", with a note when timers are paused because there's no input.</summary>
+    /// <summary>"Next: Short break in 12:30", with a note when timers are paused because there's no input.</summary>
     private string HeaderText()
     {
         if (_c.RunningRule is { } running) return $"On a break: {running.Name}";

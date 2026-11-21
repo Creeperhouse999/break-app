@@ -131,8 +131,8 @@ public sealed class ReviewFixTests : SchedulerTestBase, IDisposable
         after.Rules[0].AllowSkip = true;
         after.Rules[1].AllowSkip = true;
         var lines = new CommitmentGuard(Clock).WeakeningChanges(before, after);
-        Assert.Contains(lines, l => l.Contains("Eye rest"));
-        Assert.Contains(lines, l => l.Contains("Stretch"));
+        Assert.Contains(lines, l => l.Contains("Short break"));
+        Assert.Contains(lines, l => l.Contains("Long break"));
     }
 
     [Fact]

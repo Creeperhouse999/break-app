@@ -129,7 +129,7 @@ internal static class UxTour
         c.Notifications.Close("tour-warn");
         await Wait(500);
         var end = DateTime.Now.AddSeconds(15);
-        c.Notifications.Show(new NotificationRequest("tour-break", NotificationKind.Warning, "Eye rest", "Look at something 6 metres away for 20 seconds.",
+        c.Notifications.Show(new NotificationRequest("tour-break", NotificationKind.Warning, "Short break", "Look away from the screen for a bit.",
             [new("skip", "Skip"), new("postpone", "Postpone 5 min")], TimeSpan.Zero, Remaining: () => end - DateTime.Now, Total: TimeSpan.FromSeconds(20),
             Flash: new FlashSettings()));
         await Wait(900);
@@ -140,7 +140,7 @@ internal static class UxTour
         // ---- breaks (preview path: never locks)
         foreach (var style in new[] { BreakStyle.Window, BreakStyle.Fullscreen })
         {
-            var r = RuleTemplates.Stretch();
+            var r = RuleTemplates.LongBreak();
             r.Style = style;
             r.Duration = TimeSpan.FromMinutes(5);
             c.Presenter.Preview(r, c.Settings);

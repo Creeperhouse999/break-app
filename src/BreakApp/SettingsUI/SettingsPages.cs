@@ -90,10 +90,10 @@ public static class SettingsPages
         b.Choice("Collision", "Overlapping breaks", "What happens when two rules are due at about the same time.",
             () => ctx.Edit.Collision, v => ctx.Edit.Collision = v,
             [(CollisionPolicy.BiggerWins, "Bigger break wins"), (CollisionPolicy.Sequential, "Run both, shortest first"), (CollisionPolicy.ResetAll, "Any break resets all timers")],
-            tip: "Bigger wins: the 20 s eye rest is skipped when the 5 min stretch happens at the same time. Reset all: after any break every timer starts from zero.");
+            tip: "Bigger wins: the 20 s short break is skipped when the 5 min long break happens at the same time. Reset all: after any break every timer starts from zero.");
         b.Duration("CollisionWindow", "Overlap window", "Rules due within this time of each other are treated as one.",
             () => ctx.Edit.CollisionWindow, v => ctx.Edit.CollisionWindow = v, TimeSpan.Zero, TimeSpan.FromMinutes(10), advanced: true,
-            tip: "Example: 1 min — if the eye rest is due 40 s after the stretch starts, it is merged into the stretch.");
+            tip: "Example: 1 min — if the short break is due 40 s after the long break starts, it is merged into the long break.");
         return b.Panel;
     }
 
@@ -141,7 +141,7 @@ public static class SettingsPages
         }));
         actions.Children.Add(Icon("\uE74D", "Delete", () =>
         {
-            if (MessageBox.Show($"Delete the rule '{r.Name}'?", "Delete rule", MessageBoxButton.OKCancel, MessageBoxImage.Question) != MessageBoxResult.OK) return;
+            if (!ThemedDialog.Confirm("Delete break?", $"Delete '{r.Name}'? Its history stays in Stats.", "Delete", "Cancel", ThemedDialog.Kind.Danger)) return;
             rules.Remove(r);
             ctx.MarkDirty();
             ctx.Rebuild();
@@ -274,7 +274,7 @@ public static class SettingsPages
         b.Group("Sound & test");
         b.Sound("Sound.WarningSound", "Warning sound", "Played with warnings (when the rule has the sound on).", () => ctx.Edit.Sound.WarningSound, v => ctx.Edit.Sound.WarningSound = v);
         b.Add(b.Button("Test a warning", () => ctx.C.Notifications.Show(new NotificationRequest("preview-warning", NotificationKind.Info,
-            Templates.Render(ctx.Edit.Texts.WarningTitle, new Dictionary<string, string> { ["rule"] = "Stretch", ["time"] = "30 s" }),
+            Templates.Render(ctx.Edit.Texts.WarningTitle, new Dictionary<string, string> { ["rule"] = "Long break", ["time"] = "30 s" }),
             Templates.Render(ctx.Edit.Texts.WarningBody, new Dictionary<string, string> { ["duration"] = "5 min", ["style"] = ctx.Edit.Texts.StyleFullscreen }),
             [new("now", ctx.Edit.Texts.StartNowButton, true), new("skip", ctx.Edit.Texts.SkipButton)], TimeSpan.FromSeconds(8),
             Flash: ctx.Edit.Rules.FirstOrDefault()?.Flash), appearanceOverride: ctx.Edit.Appearance)));
@@ -346,7 +346,7 @@ public static class SettingsPages
         var b = new PageBuilder(ctx, "Activity & Idle");
         b.Group("Natural breaks");
         b.Toggle("Idle.NaturalBreaks", "Count time away as a break", "If you were away at least as long as a break, that break is done.",
-            () => s.NaturalBreaks, v => s.NaturalBreaks = v, tip: "Example: away 6 min → the 5 min stretch counts as taken and its timer restarts.");
+            () => s.NaturalBreaks, v => s.NaturalBreaks = v, tip: "Example: away 6 min → the 5 min long break counts as taken and its timer restarts.");
         b.Duration("Idle.Threshold", "Away after", "No activity for this long = you're away.", () => s.Threshold, v => s.Threshold = v,
             TimeSpan.FromSeconds(30), TimeSpan.FromMinutes(60));
         b.Duration("Idle.FreezeAfter", "Pause timers after no input for", "No keyboard, mouse, controller or video for this long: the countdown to the next break stops.",
@@ -407,11 +407,11 @@ public static class SettingsPages
         b.Group("Preview");
         b.Add(PageBuilder.Buttons(
             b.Button("Preview notification", () => ctx.C.Notifications.Show(new NotificationRequest("preview-notification", NotificationKind.Warning,
-                "Eye rest", "Look at something 6 metres away.", [new("skip", ctx.Edit.Texts.SkipButton)], TimeSpan.FromSeconds(6),
+                "Short break", "Look away from the screen for a bit.", [new("skip", ctx.Edit.Texts.SkipButton)], TimeSpan.FromSeconds(6),
                 Flash: ctx.Edit.Rules.FirstOrDefault()?.Flash ?? new FlashSettings()), appearanceOverride: ctx.Edit.Appearance)),
             b.Button("Preview fullscreen break (5 s)", () =>
             {
-                var r = RuleTemplates.Stretch();
+                var r = RuleTemplates.LongBreak();
                 r.Duration = TimeSpan.FromSeconds(5);
                 ctx.C.Presenter.Preview(r, ctx.Edit);
             })));
@@ -533,7 +533,7 @@ public static class SettingsPages
             }),
             b.Button("Clear history", () =>
             {
-                if (MessageBox.Show("Delete all break history? This can't be undone.", "Clear history", MessageBoxButton.OKCancel, MessageBoxImage.Warning) != MessageBoxResult.OK) return;
+                if (!ThemedDialog.Confirm("Clear history?", "Delete all break history? This can't be undone.", "Clear history", "Cancel", ThemedDialog.Kind.Danger)) return;
                 ctx.C.History.Clear();
                 ctx.Rebuild();
             }, "DangerButton")));
@@ -605,13 +605,13 @@ public static class SettingsPages
                 }
                 catch (Exception e) when (e is IOException or System.Text.Json.JsonException or NotSupportedException or UnauthorizedAccessException)
                 {
-                    MessageBox.Show("Couldn't read that file:\n" + e.Message, "Import settings", MessageBoxButton.OK, MessageBoxImage.Error);
+                    ThemedDialog.Info("Couldn't import settings", "That file couldn't be read:\n" + e.Message, ThemedDialog.Kind.Error);
                 }
             }),
             b.Button("Open data folder", () => Process.Start(new ProcessStartInfo(SettingsStore.AppDataDir) { UseShellExecute = true })),
             b.Button("Reset everything", () =>
             {
-                if (MessageBox.Show("Reset all settings to the defaults? This takes effect right away.", "Reset", MessageBoxButton.OKCancel, MessageBoxImage.Warning) != MessageBoxResult.OK) return;
+                if (!ThemedDialog.Confirm("Reset everything?", "Reset all settings to the defaults? This takes effect right away.", "Reset", "Cancel", ThemedDialog.Kind.Danger)) return;
                 ctx.Edit = AppSettings.CreateDefault();
                 ctx.MarkAppearance();
                 ctx.Rebuild();

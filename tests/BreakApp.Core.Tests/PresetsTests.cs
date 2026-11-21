@@ -26,11 +26,11 @@ public class PresetsTests
     {
         var r = Get("Strict").Apply(AppSettings.CreateDefault());
         Assert.True(r.Commitment.Enabled);
-        var stretch = r.Rules.Single(x => x.Name == "Stretch");
+        var stretch = r.Rules.Single(x => x.Name == "Long break");
         Assert.Equal(LockLevel.LockedWithKeybind, stretch.Lock);
         Assert.False(stretch.AllowSkip);
         // Notification rules keep their style and stay unlocked
-        Assert.Equal(BreakStyle.Notification, r.Rules.Single(x => x.Name == "Eye rest").Style);
+        Assert.Equal(BreakStyle.Notification, r.Rules.Single(x => x.Name == "Short break").Style);
     }
 
     [Fact]
@@ -60,7 +60,7 @@ public class PresetsTests
     {
         var s = AppSettings.CreateDefault();
         var lines = Presets.Diff(s, Get("Gentle").Apply(s));
-        Assert.Contains(lines, l => l.Contains("Stretch") && l.Contains("Notification"));
+        Assert.Contains(lines, l => l.Contains("Long break") && l.Contains("Notification"));
         Assert.Empty(Presets.Diff(s, SettingsStore.Clone(s)));
     }
 
@@ -75,7 +75,7 @@ public class PresetsTests
     [Fact]
     public void Templates_AllProduceValidRules()
     {
-        Assert.Equal(["Eye rest", "Stretch", "Walk", "Hydrate", "Custom"], RuleTemplates.All.Select(t => t.Name));
+        Assert.Equal(["Short break", "Long break", "Walk", "Hydrate", "Custom"], RuleTemplates.All.Select(t => t.Name));
         foreach (var (_, create) in RuleTemplates.All)
         {
             var r = create();

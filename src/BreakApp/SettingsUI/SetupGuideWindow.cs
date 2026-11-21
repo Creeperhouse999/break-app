@@ -45,7 +45,7 @@ public sealed class SetupGuideWindow : Window
         ResizeMode = ResizeMode.CanMinimize;
         WindowStartupLocation = WindowStartupLocation.CenterScreen;
         FontFamily = (FontFamily)Application.Current.FindResource("AppFont");
-        Icon = System.Windows.Media.Imaging.BitmapFrame.Create(new Uri("pack://application:,,,/Assets/icon.ico"));
+        Icon = Theme.AppIcon.Large;
         SetResourceReference(BackgroundProperty, "WindowBackgroundBrush");
         SourceInitialized += (_, _) => TitleBar();
         ThemeManager.Changed += TitleBar;
@@ -185,7 +185,7 @@ public sealed class SetupGuideWindow : Window
             }
         }, [((int)FlashStyle.GlowAndPulse, "Glow + pulse"), ((int)FlashStyle.Pulse, "Pulse (grow/shrink)"), ((int)FlashStyle.Glow, "Glow"), (-1, "None")]);
         b.Add(b.Button("Show a sample notification", () => _c.Notifications.Show(new NotificationRequest("setup-sample", NotificationKind.Warning,
-            "Eye rest", "Look at something 6 metres away for 20 seconds.", [new("skip", _ctx.Edit.Texts.SkipButton)], TimeSpan.FromSeconds(6),
+            "Short break", "Look away from the screen for a bit.", [new("skip", _ctx.Edit.Texts.SkipButton)], TimeSpan.FromSeconds(6),
             Flash: _ctx.Edit.Rules.FirstOrDefault()?.Flash ?? new FlashSettings()), appearanceOverride: _ctx.Edit.Appearance)));
         return b.Panel;
     }
@@ -194,7 +194,7 @@ public sealed class SetupGuideWindow : Window
     {
         var b = new PageBuilder(_ctx, "Setup");
         b.Intro("These are your break rules. Adjust the times and style — warnings, locks, messages and more are in Settings › Rules.");
-        if (_ctx.Edit.Rules.Count == 0) _ctx.Edit.Rules.Add(RuleTemplates.EyeRest());
+        if (_ctx.Edit.Rules.Count == 0) _ctx.Edit.Rules.Add(RuleTemplates.ShortBreak());
         foreach (var r in _ctx.Edit.Rules)
         {
             b.Group(r.Name);
@@ -236,7 +236,7 @@ public sealed class SetupGuideWindow : Window
             new TimeWindowsEditor(s.QuietTimes, () => { }, "Add quiet time"), wideControl: true);
 
         b.Group("Time away");
-        b.Toggle("Idle.NaturalBreaks", "Count time away as a break", "Stepped away for 5 minutes? That counts as your stretch break.",
+        b.Toggle("Idle.NaturalBreaks", "Count time away as a break", "Stepped away for 5 minutes? That counts as your long break.",
             () => _ctx.Edit.Idle.NaturalBreaks, v => _ctx.Edit.Idle.NaturalBreaks = v);
         return b.Panel;
     }
@@ -274,7 +274,7 @@ public sealed class SetupGuideWindow : Window
         var s = save ? _ctx.Edit : SettingsStore.Clone(_c.Settings);
         s.General.SetupDone = true;
         var message = _c.SaveSettings(s);
-        if (message is not null) MessageBox.Show(this, message, "Commitment mode", MessageBoxButton.OK, MessageBoxImage.Information);
+        if (message is not null) ThemedDialog.Info("Commitment mode", message);
         if (save) _c.Info("You're all set", "Break App is running in the tray.", NotificationKind.Success);
         Close();
     }
