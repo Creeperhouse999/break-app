@@ -23,7 +23,7 @@ Short and long breaks on your own schedule, as a small notification or a full-sc
 
 ## Why
 
-Break App started because [Stretchly](https://hovancik.net/stretchly/) didn't fit. It couldn't be customized enough, and it was hard to turn off quickly when it got in the way. So this is a break reminder where you set everything yourself and can pause it in one click.
+Break App started because [Stretchly](https://hovancik.net/stretchly/) didn't fit. It couldn't be customized enough, and it was too easy to ignore and switch off, so breaks just got skipped. Here you set everything yourself, and when you want it to, it can be strict: locked breaks, no skipping, and a commitment mode that stops you turning it off right before a break.
 
 Break reminders are either too easy to ignore or too annoying to keep. Break App lets you decide exactly how each break behaves: a quiet card in the corner that pulses until you notice it, a fullscreen break that really locks your keyboard until the timer runs out, or anything in between.
 
