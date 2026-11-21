@@ -146,6 +146,11 @@ public sealed class TrayService : IDisposable
         _skipItems.Clear();
         var c = _c;
 
+        if (App.Updater?.Available is { } update)
+        {
+            menu.Items.Add(new ToolStripMenuItem($"Update to {update.Version}…", null, (_, _) => App.Updater.ShowCard(update)) { Font = new Font(menu.Font, System.Drawing.FontStyle.Bold) });
+            menu.Items.Add(new ToolStripSeparator());
+        }
         _header = new ToolStripMenuItem(HeaderText()) { Enabled = false };
         menu.Items.Add(_header);
         menu.Items.Add(new ToolStripSeparator());

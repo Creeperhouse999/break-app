@@ -100,6 +100,8 @@ public sealed class GeneralSettings
     public string BreakNowHotkey { get; set; } = "Ctrl+Alt+B";
     public bool AdvancedMode { get; set; }
     public bool Use24HourClock { get; set; } = true;
+    /// <summary>Check GitHub for a newer version on start and once a day; installing always needs a click.</summary>
+    public bool CheckForUpdates { get; set; } = true;
     /// <summary>Set when the first-run setup guide was finished or skipped (internal, not shown in settings).</summary>
     public bool SetupDone { get; set; }
 }

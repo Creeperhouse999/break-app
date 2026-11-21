@@ -21,6 +21,7 @@ public partial class App : Application
     private TrayService? _tray;
 
     public static BreakCoordinator Coordinator { get; private set; } = null!;
+    public static UpdateService? Updater { get; private set; }
     public static string LogPath => Path.Combine(SettingsStore.AppDataDir, "app.log");
 
     protected override void OnStartup(StartupEventArgs e)
@@ -38,6 +39,12 @@ public partial class App : Application
         }
 
         _mutex = new Mutex(true, MutexName, out var first);
+        if (!first && e.Args.Contains("--updated-from"))
+        {
+            // Just updated: the old copy is still shutting down. Wait for it (up to 15 s) instead of exiting.
+            try { first = _mutex.WaitOne(TimeSpan.FromSeconds(15)); }
+            catch (AbandonedMutexException) { first = true; }
+        }
         if (!first)
         {
             try { EventWaitHandle.OpenExisting(ShowEventName).Set(); } catch { /* first instance is starting */ }
@@ -115,6 +122,9 @@ public partial class App : Application
         Coordinator.Start();
         Log($"started (fast={fast})");
         if (!settings.General.SetupDone) ShowSetupGuide();
+        Updater = new UpdateService(Coordinator, Quit);
+        var updatedFrom = Array.IndexOf(args, "--updated-from");
+        if (updatedFrom >= 0) UpdateService.FinishUpdate(Coordinator, args.ElementAtOrDefault(updatedFrom + 1));
 
         // Startup allocates a lot once (XAML, settings, theme); hand it back so the idle tray app stays small.
         var trim = new DispatcherTimer { Interval = TimeSpan.FromSeconds(8) };
@@ -269,6 +279,7 @@ public partial class App : Application
 
     public void Quit()
     {
+        Updater?.Dispose();
         _hotkeys?.Dispose();
         _tray?.Dispose();
         Coordinator?.Dispose();

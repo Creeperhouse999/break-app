@@ -10,10 +10,16 @@
 - Owner's PC: lesson times added as quiet times; break messages set to "Stand up" / "Look away and make a bit of stretching"; fullscreen opacity 100 %.
 - Verified: 161 unit tests and self-test 16/16 (as of this entry).
 
+- Owner OK'd clearing the Windows icon cache: Explorer restarted and the cache was deleted.
+- **Auto-updater (v1.1.0):**
+  - checks the GitHub latest release 30 s after start and then daily;
+  - the card offers Update now / What's new / Later;
+  - Update now downloads, checks the file is a real exe and matches the release size, renames the running exe to `.old`, swaps the new one in and restarts with `--updated-from`;
+  - only trusts download URLs from this repo's releases;
+  - Settings › General has the switch and a "Check now" button, and the tray menu shows "Update to …" when one is available.
+
 **Next:**
-1. Clear the old taskbar icon from the Windows icon cache. This restarts Explorer, so ask first.
-2. Auto-updater: check the latest GitHub release on start and offer "Update now".
-3. A broader settings UX rework: the owner finds the settings unintuitive. Follow `docs/UX-GUIDELINES.md`.
+- A broader settings UX rework: the owner finds the settings unintuitive. Follow `docs/UX-GUIDELINES.md`.
 
 ## 2026-11-20
 

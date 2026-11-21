@@ -41,6 +41,7 @@ It's a small native tray app (C# / WPF, ~0.5 MB exe), inspired by [Stretchly](ht
 | 🎨 **Customize almost everything** | Name your breaks and write their messages (Texts tab), every other text the app shows (with `{rule}`, `{time}`… placeholders), themes, any accent colour, break-screen colours, opacity, background image, text size, sounds, shortcuts, 12/24 h clock. |
 | 📊 **Stats** | Breaks taken / skipped / postponed / natural per day and per rule, streaks, CSV export. |
 | 🧭 **Setup guide** | A short first-run guide: preset, look, break times, pausing. Reopen it from the tray any time. |
+| 🔄 **Updates** | Checks GitHub for a new version on start and once a day, then offers **Update now** (it never installs without a click). Turn it off in Settings › General. |
 
 ## Screenshots
 
@@ -68,6 +69,8 @@ It's a small native tray app (C# / WPF, ~0.5 MB exe), inspired by [Stretchly](ht
 1. Install the [.NET 10 Desktop Runtime](https://dotnet.microsoft.com/download/dotnet/10.0) (x64) if you don't have it.
 2. Download `BreakApp.exe` from the [latest release](../../releases/latest) and put it anywhere (e.g. `Documents\BreakApp`).
 3. Run it. The **setup guide** opens on first launch; after that, Break App lives in the tray next to the clock.
+
+After that you don't need to download it again: when a new version comes out, Break App shows a card with **Update now**. Your settings stay as they are.
 
 Your settings and history are stored in `%AppData%\BreakApp\`. To uninstall, quit from the tray, turn off *Start with Windows* first (or delete the `BreakApp` value under `HKCU\Software\Microsoft\Windows\CurrentVersion\Run`), and delete the exe and that folder.
 

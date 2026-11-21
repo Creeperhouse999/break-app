@@ -617,8 +617,20 @@ public static class SettingsPages
                 ctx.Rebuild();
             }, "DangerButton")));
 
+        b.Group("Updates");
+        b.Toggle("General.CheckForUpdates", "Check for updates", "Looks for a new version on start and once a day. Nothing installs until you click Update now.",
+            () => g.CheckForUpdates, v => g.CheckForUpdates = v);
+        var version = Services.UpdateService.CurrentVersion;
+        var check = b.Button(App.Updater?.Available is { } a ? $"Update to {a.Version}" : "Check now", async () =>
+        {
+            if (App.Updater is null) return;
+            if (App.Updater.Available is { } avail) App.Updater.ShowCard(avail);
+            else await App.Updater.CheckAsync(userInitiated: true);
+        }, "PrimaryButton");
+        b.Row("General.Version", "Version", $"You have Break App {version}.", check);
+
         b.Group("About");
-        b.Add(new TextBlock { Text = $"Break App {typeof(SettingsPages).Assembly.GetName().Version?.ToString(3)} · settings in {SettingsStore.AppDataDir}", TextWrapping = TextWrapping.Wrap }
+        b.Add(new TextBlock { Text = $"Break App {version} · settings in {SettingsStore.AppDataDir}", TextWrapping = TextWrapping.Wrap }
             .WithRef(TextBlock.ForegroundProperty, "Text2Brush"));
         return b.Panel;
     }
