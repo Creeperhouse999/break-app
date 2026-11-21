@@ -23,9 +23,11 @@ Short and long breaks on your own schedule, as a small notification or a full-sc
 
 ## Why
 
-Break reminders are either too easy to ignore or too annoying to keep. Break App lets you decide exactly how each break behaves: a quiet card in the corner that pulses until you notice it, or a fullscreen break that really locks your keyboard until the timer runs out — and everything in between.
+Break App started because [Stretchly](https://hovancik.net/stretchly/) didn't fit. It couldn't be customized enough, and it was hard to turn off quickly when it got in the way. So this is a break reminder where you set everything yourself and can pause it in one click.
 
-It's a small native tray app (C# / WPF, ~0.5 MB exe), inspired by [Stretchly](https://hovancik.net/stretchly/).
+Break reminders are either too easy to ignore or too annoying to keep. Break App lets you decide exactly how each break behaves: a quiet card in the corner that pulses until you notice it, a fullscreen break that really locks your keyboard until the timer runs out, or anything in between.
+
+It's a small native tray app (C# / WPF, ~0.6 MB exe). Stretchly is a good app and was the starting idea; Break App just goes its own way.
 
 ## Features
 
