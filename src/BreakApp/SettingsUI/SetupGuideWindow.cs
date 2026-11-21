@@ -198,6 +198,7 @@ public sealed class SetupGuideWindow : Window
         foreach (var r in _ctx.Edit.Rules)
         {
             b.Group(r.Name);
+            b.Text("Rules[].Name", "Name", "What the break is called on screen (e.g. Short break, Long break).", () => r.Name, v => r.Name = v);
             b.Duration("Rules[].Interval", "Every", "How often this break comes.", () => r.Interval, v => r.Interval = v, TimeSpan.FromSeconds(10), TimeSpan.FromHours(24));
             b.Duration("Rules[].Duration", "For", "How long the break lasts.", () => r.Duration, v => r.Duration = v, TimeSpan.FromSeconds(5), TimeSpan.FromHours(4));
             b.Choice("Rules[].Style", "Style", "Notification card, window, or fullscreen.", () => r.Style, v => r.Style = v,

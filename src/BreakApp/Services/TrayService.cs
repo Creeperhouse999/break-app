@@ -92,6 +92,9 @@ public sealed class TrayService : IDisposable
         bmp.Dispose();
     }
 
+    private static readonly string IconFontFamily =
+        new System.Drawing.Text.InstalledFontCollection().Families.Any(f => f.Name == "Segoe Fluent Icons") ? "Segoe Fluent Icons" : "Segoe MDL2 Assets";
+
     private static System.Drawing.Color C(System.Windows.Media.Color c) => System.Drawing.Color.FromArgb(c.A, c.R, c.G, c.B);
 
     /// <summary>Accent tile; white ring shrinks as the next break approaches; grey with pause bars when paused.</summary>
@@ -114,25 +117,11 @@ public sealed class TrayService : IDisposable
         var c2 = paused ? System.Drawing.Color.FromArgb(0x9C, 0xA3, 0xAF) : C(p.A3);
         using (var brush = new LinearGradientBrush(new RectangleF(0, 0, s, s), c1, c2, 45f)) g.FillPath(brush, path);
 
-        using var pen = new Pen(System.Drawing.Color.White, 3f) { StartCap = LineCap.Round, EndCap = LineCap.Round };
-        const float m = 6.5f;
-        if (paused)
-        {
-            g.FillRectangle(Brushes.White, 11, 9, 3.5f, 14);
-            g.FillRectangle(Brushes.White, 17.5f, 9, 3.5f, 14);
-        }
-        else if (inBreak)
-        {
-            g.DrawEllipse(pen, m, m, s - 2 * m, s - 2 * m);
-            g.FillEllipse(Brushes.White, 13, 13, 6, 6);
-        }
-        else
-        {
-            using var faint = new Pen(System.Drawing.Color.FromArgb(90, 255, 255, 255), 3f);
-            g.DrawEllipse(faint, m, m, s - 2 * m, s - 2 * m);
-            var sweep = (float)Math.Max(8, 360 * fraction);
-            g.DrawArc(pen, m, m, s - 2 * m, s - 2 * m, -90, sweep);
-        }
+        // Same as the app icon: white stopwatch (Segoe Fluent Icons U+E916). Paused = grey tile.
+        g.TextRenderingHint = System.Drawing.Text.TextRenderingHint.AntiAliasGridFit;
+        using var font = new Font(IconFontFamily, s * 0.6f, System.Drawing.FontStyle.Regular, GraphicsUnit.Pixel);
+        using var fmt = new StringFormat { Alignment = StringAlignment.Center, LineAlignment = StringAlignment.Center };
+        g.DrawString("", font, Brushes.White, new RectangleF(0, s * 0.02f, s, s), fmt);
         return bmp;
     }
 

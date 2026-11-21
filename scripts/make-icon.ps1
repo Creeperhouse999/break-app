@@ -20,16 +20,13 @@ function New-IconPng([int]$s) {
     $rect = New-Object System.Drawing.RectangleF 0, 0, $s, $s
     $brush = New-Object System.Drawing.Drawing2D.LinearGradientBrush $rect, ([System.Drawing.ColorTranslator]::FromHtml('#2563eb')), ([System.Drawing.ColorTranslator]::FromHtml('#60a5fa')), 45
     $g.FillPath($brush, $path)
-    $pw = [single]([Math]::Max(1.5, $s * 0.085))
-    $pen = New-Object System.Drawing.Pen ([System.Drawing.Color]::White), $pw
-    $pen.StartCap = 'Round'; $pen.EndCap = 'Round'
-    $m = [single]($s * 0.2)
-    $g.DrawArc($pen, $m, $m, $s - 2 * $m, $s - 2 * $m, -60, 300)
-    $bw = [single]($s * 0.075); $bh = [single]($s * 0.24)
-    $cx = [single]($s / 2); $cy = [single]($s / 2)
-    $white = [System.Drawing.Brushes]::White
-    $g.FillRectangle($white, $cx - $bw * 1.6, $cy - $bh / 2, $bw, $bh)
-    $g.FillRectangle($white, $cx + $bw * 0.6, $cy - $bh / 2, $bw, $bh)
+    # White stopwatch glyph (Segoe Fluent Icons U+E916), same as the logo in the settings window
+    $g.TextRenderingHint = [System.Drawing.Text.TextRenderingHint]::AntiAliasGridFit
+    $family = if ((New-Object System.Drawing.Text.InstalledFontCollection).Families.Name -contains 'Segoe Fluent Icons') { 'Segoe Fluent Icons' } else { 'Segoe MDL2 Assets' }
+    $font = New-Object System.Drawing.Font $family, ([single]($s * 0.6)), ([System.Drawing.FontStyle]::Regular), ([System.Drawing.GraphicsUnit]::Pixel)
+    $fmt = New-Object System.Drawing.StringFormat; $fmt.Alignment = 'Center'; $fmt.LineAlignment = 'Center'
+    $g.DrawString([string][char]0xE916, $font, [System.Drawing.Brushes]::White, (New-Object System.Drawing.RectangleF 0, ([single]($s * 0.02)), $s, $s), $fmt)
+    $font.Dispose()
     $g.Dispose()
     $ms = New-Object System.IO.MemoryStream
     $bmp.Save($ms, [System.Drawing.Imaging.ImageFormat]::Png)

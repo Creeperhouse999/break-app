@@ -83,11 +83,8 @@ public sealed class SettingsWindow : Window
         var sideBg = new Border { Child = side, Padding = new Thickness(14, 18, 14, 14) };
         sideBg.SetResourceReference(Border.BackgroundProperty, "SidebarBrush");
         var brand = new StackPanel { Orientation = Orientation.Horizontal, Margin = new Thickness(8, 0, 0, 18) };
-        brand.Children.Add(new Border { Width = 26, Height = 26, CornerRadius = new CornerRadius(8), Child = new TextBlock
-        {
-            Text = "", FontFamily = (FontFamily)Application.Current.FindResource("IconFont"), Foreground = Brushes.White, FontSize = 14,
-            HorizontalAlignment = HorizontalAlignment.Center, VerticalAlignment = VerticalAlignment.Center,
-        } }.WithRef(Border.BackgroundProperty, "AccentGradientBrush"));
+        // Same icon as the window / taskbar / tray.
+        brand.Children.Add(new System.Windows.Controls.Image { Width = 28, Height = 28, Source = System.Windows.Media.Imaging.BitmapFrame.Create(new Uri("pack://application:,,,/Assets/icon.ico")) });
         brand.Children.Add(new TextBlock { Text = "Break App", FontSize = 16, FontWeight = FontWeights.SemiBold, Margin = new Thickness(10, 0, 0, 0), VerticalAlignment = VerticalAlignment.Center }
             .WithRef(TextBlock.ForegroundProperty, "Text1Brush"));
         DockPanel.SetDock(brand, Dock.Top);
