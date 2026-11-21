@@ -1,0 +1,21 @@
+name: ✨ Feature request
+description: Suggest an idea or an improvement
+labels: ["enhancement"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What would you like?
+      description: Describe the feature and why it would help you.
+    validations:
+      required: true
+  - type: textarea
+    id: example
+    attributes:
+      label: Example
+      description: How would you use it? A mock-up or a similar app helps.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options: [Breaks, Input lock, Warnings, Pausing, Idle, Settings, Setup guide, Tray, Stats, Appearance, Other]

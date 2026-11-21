@@ -38,7 +38,7 @@ It's a small native tray app (C# / WPF, ~0.5 MB exe), inspired by [Stretchly](ht
 | 🚶 **Natural breaks** | Time without input doesn't count toward the next break (the countdown pauses after 1 min of no input), and time away counts as a break. Gamepad input and watching videos count as activity. |
 | 🤝 **Overlapping rules** | Bigger break wins, run both, or reset all timers. |
 | 🧱 **Commitment mode** *(optional)* | No skipping, pausing or quitting shortly before strict breaks; making them weaker waits for a cooldown. |
-| 🎨 **Customize almost everything** | Every text the app shows (with `{rule}`, `{time}`… placeholders), themes, any accent colour, break-screen colours, opacity, background image, text size, sounds, shortcuts, 12/24 h clock. |
+| 🎨 **Customize almost everything** | Name your breaks and write their messages (Texts tab), every other text the app shows (with `{rule}`, `{time}`… placeholders), themes, any accent colour, break-screen colours, opacity, background image, text size, sounds, shortcuts, 12/24 h clock. |
 | 📊 **Stats** | Breaks taken / skipped / postponed / natural per day and per rule, streaks, CSV export. |
 | 🧭 **Setup guide** | A short first-run guide: preset, look, break times, pausing. Reopen it from the tray any time. |
 
@@ -126,6 +126,14 @@ src/BreakApp        WPF shell: tray, notifications, break windows, input lock, O
 tests/              xUnit tests for Core
 docs/               design spec, implementation plan, screenshots
 ```
+
+## Report a bug or ask for a feature
+
+Found a problem or have an idea? [Open an issue](../../issues/new/choose) — pick **🐞 Bug report** or **✨ Feature request**. For a bug, the last lines of `%AppData%BreakApppp.log` and a screenshot help a lot (remove anything private). Questions are welcome in [Discussions](../../discussions).
+
+Issues are labelled by area (`area: breaks`, `area: lock`, `area: pausing`, `area: idle`, `area: settings`, `area: tray`, `area: ui/ux`) and `needs triage` until someone has looked at them.
+
+Contributors: please read the [UX guidelines](docs/UX-GUIDELINES.md) before changing the UI, and run `scriptsun-ui-tests.ps1` before sending a change.
 
 ## License
 

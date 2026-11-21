@@ -441,7 +441,16 @@ public static class SettingsPages
     {
         var t = ctx.Edit.Texts;
         var b = new PageBuilder(ctx, "Texts");
-        b.Intro("Change any text the app shows. Words in {braces} are filled in automatically. Clear a box and save to get the default back.");
+        b.Intro("Change any text the app shows. Words in {braces} are filled in automatically. Clear a box to get the default back.");
+
+        // Each break's own name and messages first: that's the text people see most.
+        foreach (var r in ctx.Edit.Rules)
+        {
+            b.Group($"Break: {r.Name}");
+            b.Text("Rules[].Name", "Name", "Shown as the title of this break.", () => r.Name, v => r.Name = v, width: 300);
+            b.Lines("Rules[].Messages", "Messages", "One per line. A random one is shown on each break.", () => r.Messages, v => r.Messages = v, minLines: 2);
+        }
+
         b.Group("Notifications & buttons");
         foreach (var (prop, title, desc) in TextRows)
         {

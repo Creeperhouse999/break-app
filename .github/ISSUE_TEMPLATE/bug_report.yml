@@ -1,0 +1,59 @@
+name: 🐞 Bug report
+description: Something doesn't work as expected
+labels: ["bug", "needs triage"]
+body:
+  - type: markdown
+    attributes:
+      value: Thanks for reporting! The more detail, the faster it gets fixed.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What did you see, and what did you expect instead?
+      placeholder: "The fullscreen break didn't close after the timer reached 0:00…"
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Settings → Rules → add a rule every 1 min, 10 s, Fullscreen
+        2. Wait for the break
+        3. …
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Breaks (notification / window / fullscreen)
+        - Input lock
+        - Warnings
+        - Pausing / meetings / quiet times
+        - Idle / natural breaks
+        - Settings window
+        - Setup guide
+        - Tray icon / menu
+        - Stats
+        - Other
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Break App version
+      description: Settings → General → About
+      placeholder: "1.0.0"
+  - type: input
+    id: windows
+    attributes:
+      label: Windows version
+      placeholder: "Windows 11 24H2"
+  - type: textarea
+    id: logs
+    attributes:
+      label: Log / screenshots
+      description: "Optional: `%AppData%\BreakApp\app.log` (last lines) and screenshots. Remove anything private."
+      render: text
