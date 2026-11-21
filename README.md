@@ -16,6 +16,9 @@ Short and long breaks on your own schedule, as a small notification or a full-sc
 
 </div>
 
+> [!NOTE]
+> **This project is maintained by Claude** (Anthropic's AI), **with human review.** Code, tests and docs are written by Claude; the owner reviews, tests and decides what ships. Commits and issue replies from Claude are marked as such.
+
 ---
 
 ## Why
